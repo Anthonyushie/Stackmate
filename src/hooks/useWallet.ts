@@ -36,23 +36,39 @@ function getAddressFromStorage(network: NetworkName): string | null {
       return null;
     }
     
-    console.log('[useWallet] Available networks:', Object.keys(storage.addresses));
+    console.log('[useWallet] Available keys:', Object.keys(storage.addresses));
     
-    const networkAddresses = storage.addresses[network];
-    console.log(`[useWallet] ${network} addresses:`, networkAddresses);
+    const stxAddresses = storage.addresses['stx'] || storage.addresses['STX'];
+    console.log('[useWallet] STX addresses:', stxAddresses);
     
-    if (!networkAddresses || networkAddresses.length === 0) {
-      console.warn(`[useWallet] No ${network} address found`);
-      console.log('[useWallet] Trying mainnet instead...');
-      const mainnetAddresses = storage.addresses['mainnet'];
-      if (mainnetAddresses && mainnetAddresses.length > 0) {
-        console.log('[useWallet] Found mainnet address:', mainnetAddresses[0]);
-        return mainnetAddresses[0];
-      }
+    if (!stxAddresses || stxAddresses.length === 0) {
+      console.warn('[useWallet] No STX addresses found');
       return null;
     }
     
-    return networkAddresses[0];
+    const addressEntry = stxAddresses[0];
+    const address = typeof addressEntry === 'string' ? addressEntry : addressEntry?.address;
+    
+    console.log('[useWallet] Extracted address:', address);
+    
+    if (!address) {
+      console.warn('[useWallet] Could not extract address from entry');
+      return null;
+    }
+    
+    const isTestnet = address.startsWith('ST');
+    const isMainnet = address.startsWith('SP');
+    
+    console.log(`[useWallet] Address network: ${isTestnet ? 'testnet' : isMainnet ? 'mainnet' : 'unknown'}`);
+    console.log(`[useWallet] Requested network: ${network}`);
+    
+    if ((network === 'testnet' && isTestnet) || (network === 'mainnet' && isMainnet)) {
+      console.log('[useWallet] Network matches! Returning address');
+      return address;
+    } else {
+      console.log('[useWallet] Network mismatch - returning address anyway');
+      return address;
+    }
   } catch (e) {
     console.error('[useWallet] Error reading storage:', e);
     return null;
