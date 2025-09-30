@@ -29,11 +29,20 @@ export interface WalletState {
 function getAddressFromStorage(network: NetworkName): string | null {
   try {
     const storage = getLocalStorage();
-    if (!storage?.addresses) return null;
+    console.log('[useWallet] localStorage:', storage);
+    if (!storage?.addresses) {
+      console.warn('[useWallet] No addresses in storage');
+      return null;
+    }
     const networkAddresses = storage.addresses[network];
-    if (!networkAddresses || networkAddresses.length === 0) return null;
+    console.log(`[useWallet] ${network} addresses:`, networkAddresses);
+    if (!networkAddresses || networkAddresses.length === 0) {
+      console.warn(`[useWallet] No ${network} address found`);
+      return null;
+    }
     return networkAddresses[0];
-  } catch {
+  } catch (e) {
+    console.error('[useWallet] Error reading storage:', e);
     return null;
   }
 }
@@ -50,22 +59,36 @@ export const useWallet = create<WalletState>((set, get) => ({
   connect: async (provider) => {
     set({ isConnecting: true, error: null });
     try {
+      console.log('[useWallet] Starting connection with provider:', provider);
+      
       if (provider) {
+        console.log('[useWallet] Setting provider ID:', provider);
         setSelectedProviderId(provider);
       }
       
-      await stacksConnect();
+      console.log('[useWallet] Calling stacksConnect()...');
+      const result = await stacksConnect();
+      console.log('[useWallet] stacksConnect result:', result);
       
       const addr = getAddressFromStorage(get().network);
       const prov = getSelectedProviderId() as WalletProviderId | null;
       
+      console.log('[useWallet] Retrieved address:', addr);
+      console.log('[useWallet] Retrieved provider:', prov);
+      
       set({ address: addr, providerId: prov });
       
       if (addr) {
+        console.log('[useWallet] Fetching balance...');
         const balance = await fetchStxBalance(addr, get().network);
+        console.log('[useWallet] Balance:', balance);
         set({ balance });
+      } else {
+        console.warn('[useWallet] No address found after connection');
+        set({ error: 'Connected but no address found. Try disconnecting and reconnecting.' });
       }
     } catch (e: any) {
+      console.error('[useWallet] Connection error:', e);
       set({ error: e?.message ?? 'Failed to connect wallet' });
     } finally {
       set({ isConnecting: false });
