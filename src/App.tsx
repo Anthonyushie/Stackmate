@@ -2,7 +2,7 @@ import WalletConnect from './components/WalletConnect';
 import useWallet from './hooks/useWallet';
 
 export default function App() {
-  const { address, balance, network, providerId } = useWallet();
+  const { address, balance, network, providerId, error } = useWallet();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-100 via-yellow-100 to-blue-100 p-8">
@@ -16,6 +16,13 @@ export default function App() {
 
         <main className="rounded-none border-[3px] border-black shadow-[8px_8px_0_#000] bg-white p-8">
           <h2 className="text-2xl font-black mb-6">Wallet Status</h2>
+          
+          {error && (
+            <div className="mb-6 bg-red-100 p-4 rounded-none border-2 border-red-600">
+              <div className="text-xs font-bold uppercase tracking-wider text-red-800">Error</div>
+              <div className="text-sm text-red-900 mt-1">{error}</div>
+            </div>
+          )}
           
           {address ? (
             <div className="space-y-4">
