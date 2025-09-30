@@ -29,17 +29,29 @@ export interface WalletState {
 function getAddressFromStorage(network: NetworkName): string | null {
   try {
     const storage = getLocalStorage();
-    console.log('[useWallet] localStorage:', storage);
+    console.log('[useWallet] Full localStorage:', JSON.stringify(storage, null, 2));
+    
     if (!storage?.addresses) {
       console.warn('[useWallet] No addresses in storage');
       return null;
     }
+    
+    console.log('[useWallet] Available networks:', Object.keys(storage.addresses));
+    
     const networkAddresses = storage.addresses[network];
     console.log(`[useWallet] ${network} addresses:`, networkAddresses);
+    
     if (!networkAddresses || networkAddresses.length === 0) {
       console.warn(`[useWallet] No ${network} address found`);
+      console.log('[useWallet] Trying mainnet instead...');
+      const mainnetAddresses = storage.addresses['mainnet'];
+      if (mainnetAddresses && mainnetAddresses.length > 0) {
+        console.log('[useWallet] Found mainnet address:', mainnetAddresses[0]);
+        return mainnetAddresses[0];
+      }
       return null;
     }
+    
     return networkAddresses[0];
   } catch (e) {
     console.error('[useWallet] Error reading storage:', e);
