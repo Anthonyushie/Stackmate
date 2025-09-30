@@ -2,16 +2,14 @@ import { create } from 'zustand';
 import {
   connect as stacksConnect,
   disconnect as stacksDisconnect,
-  isConnected as stacksIsConnected,
-  getStxAddress,
+  getLocalStorage,
   getSelectedProviderId,
   setSelectedProviderId,
   clearSelectedProviderId,
-  getStacksProvider,
 } from '@stacks/connect';
 import { fetchStxBalance, getNetwork, type NetworkName, type StxBalance } from '../lib/stacks';
 
-export type WalletProviderId = 'Hiro' | 'Xverse' | 'Leather';
+export type WalletProviderId = 'LeatherProvider' | 'XverseProviders.BitcoinProvider' | 'HiroWalletProvider';
 
 export interface WalletState {
   network: NetworkName;
@@ -28,20 +26,16 @@ export interface WalletState {
   getAddress: () => string | null;
 }
 
-async function resolveAddress(): Promise<string | null> {
+function getAddressFromStorage(network: NetworkName): string | null {
   try {
-    const addr = await getStxAddress();
-    if (addr) return addr;
-  } catch {}
-  try {
-    const provider: any = (await getStacksProvider?.()) ?? null;
-    if (provider?.request) {
-      const res: any = await provider.request('stx_getAddresses');
-      const first = res?.addresses?.[0]?.address ?? res?.[0]?.address;
-      if (first) return first as string;
-    }
-  } catch {}
-  return null;
+    const storage = getLocalStorage();
+    if (!storage?.addresses) return null;
+    const networkAddresses = storage.addresses[network];
+    if (!networkAddresses || networkAddresses.length === 0) return null;
+    return networkAddresses[0];
+  } catch {
+    return null;
+  }
 }
 
 export const useWallet = create<WalletState>((set, get) => ({
@@ -56,12 +50,17 @@ export const useWallet = create<WalletState>((set, get) => ({
   connect: async (provider) => {
     set({ isConnecting: true, error: null });
     try {
-      if (provider) setSelectedProviderId(provider);
-      getNetwork(get().network);
-      await stacksConnect({ network: get().network as any });
-      const addr = await resolveAddress();
-      const prov = (await getSelectedProviderId?.()) as WalletProviderId | null;
+      if (provider) {
+        setSelectedProviderId(provider);
+      }
+      
+      await stacksConnect();
+      
+      const addr = getAddressFromStorage(get().network);
+      const prov = getSelectedProviderId() as WalletProviderId | null;
+      
       set({ address: addr, providerId: prov });
+      
       if (addr) {
         const balance = await fetchStxBalance(addr, get().network);
         set({ balance });
@@ -76,12 +75,16 @@ export const useWallet = create<WalletState>((set, get) => ({
     try {
       await stacksDisconnect();
     } catch {}
-    try { clearSelectedProviderId?.(); } catch {}
+    try {
+      clearSelectedProviderId();
+    } catch {}
     set({ providerId: null, address: null, balance: null });
   },
   switchNetwork: async (network) => {
     set({ network });
-    const addr = get().address;
+    const addr = getAddressFromStorage(network);
+    set({ address: addr });
+    
     if (addr) {
       try {
         set({ isFetchingBalance: true });
@@ -90,16 +93,18 @@ export const useWallet = create<WalletState>((set, get) => ({
       } finally {
         set({ isFetchingBalance: false });
       }
+    } else {
+      set({ balance: null });
     }
   },
   refresh: async () => {
-    const connected = await stacksIsConnected().catch(() => false);
-    if (!connected) return;
-    const addr = await resolveAddress();
+    const addr = getAddressFromStorage(get().network);
     if (addr) {
       set({ address: addr });
-      const balance = await fetchStxBalance(addr, get().network);
-      set({ balance });
+      try {
+        const balance = await fetchStxBalance(addr, get().network);
+        set({ balance });
+      } catch {}
     }
   },
 }));
