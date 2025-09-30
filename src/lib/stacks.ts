@@ -1,4 +1,4 @@
-import { StacksMainnet, StacksTestnet, type StacksNetwork } from '@stacks/network';
+import { STACKS_MAINNET, STACKS_TESTNET, type StacksNetwork } from '@stacks/network';
 
 export type NetworkName = 'mainnet' | 'testnet';
 
@@ -12,13 +12,13 @@ export interface NetworkConfig {
 export const NETWORKS: Record<NetworkName, NetworkConfig> = {
   mainnet: {
     name: 'mainnet',
-    network: new StacksMainnet(),
+    network: STACKS_MAINNET,
     apiBaseUrl: 'https://api.hiro.so',
     explorerBaseUrl: 'https://explorer.hiro.so',
   },
   testnet: {
     name: 'testnet',
-    network: new StacksTestnet(),
+    network: STACKS_TESTNET,
     apiBaseUrl: 'https://api.testnet.hiro.so',
     explorerBaseUrl: 'https://explorer.hiro.so/testnet',
   },
