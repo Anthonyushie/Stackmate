@@ -7,7 +7,19 @@ import { truncateMiddle } from '../lib/stacks';
 const brutal =
   'rounded-none border-[3px] border-black shadow-[6px_6px_0_#000] active:shadow-[2px_2px_0_#000] active:translate-x-[4px] active:translate-y-[4px] transition-all';
 
-const ProviderOption = ({ name, onClick }: { name: WalletProviderId; onClick: () => void }) => (
+const WALLET_OPTIONS: Array<{ id: WalletProviderId; name: string }> = [
+  { id: 'LeatherProvider', name: 'Leather' },
+  { id: 'XverseProviders.BitcoinProvider', name: 'Xverse' },
+  { id: 'HiroWalletProvider', name: 'Hiro' },
+];
+
+const getProviderDisplayName = (providerId: WalletProviderId | null): string => {
+  if (!providerId) return '';
+  const wallet = WALLET_OPTIONS.find(w => w.id === providerId);
+  return wallet?.name ?? providerId;
+};
+
+const ProviderOption = ({ id, name, onClick }: { id: WalletProviderId; name: string; onClick: () => void }) => (
   <button
     onClick={onClick}
     className={`w-full text-left px-4 py-2 bg-white hover:bg-yellow-200 ${brutal}`}
@@ -67,13 +79,14 @@ export default function WalletConnect({ className = '' }: { className?: string }
             <div className={`p-3 bg-pink-200 ${brutal}`}>
               <div className="text-xs font-bold mb-2">Choose a wallet</div>
               <div className="grid gap-2">
-                {(['Hiro', 'Xverse', 'Leather'] as WalletProviderId[]).map((p) => (
+                {WALLET_OPTIONS.map((wallet) => (
                   <ProviderOption
-                    key={p}
-                    name={p}
+                    key={wallet.id}
+                    id={wallet.id}
+                    name={wallet.name}
                     onClick={async () => {
                       setShowProviders(false);
-                      await connect(p).catch(() => {});
+                      await connect(wallet.id).catch(() => {});
                     }}
                   />
                 ))}
@@ -97,7 +110,7 @@ export default function WalletConnect({ className = '' }: { className?: string }
                 <div className="text-[10px] uppercase tracking-widest font-black opacity-60">Connected</div>
                 <div className="text-sm font-bold">{truncateMiddle(address)}</div>
                 <div className="text-xs">{balance?.stx ?? '—'} STX</div>
-                {providerId && <div className="text-[10px] mt-1">via {providerId}</div>}
+                {providerId && <div className="text-[10px] mt-1">via {getProviderDisplayName(providerId)}</div>}
               </div>
               <div className="grid gap-2">
                 <button
