@@ -1,6 +1,7 @@
 import { fetchCallReadOnlyFunction, ClarityType, cvToJSON, hexToCV, standardPrincipalCV, uintCV, bufferCV, cvToHex } from '@stacks/transactions';
 import type { StacksNetwork } from '@stacks/network';
 import { getNetwork, getApiBaseUrl, type NetworkName } from './stacks';
+import { txManager } from '../hooks/useTransaction';
 
 export type TxStatus = 'idle' | 'requesting_signature' | 'submitted' | 'pending' | 'success' | 'failed';
 
@@ -72,13 +73,16 @@ const pollTx = async (txId: string, network: NetworkName, onStatus?: OnStatus): 
         const j = await res.json();
         const status = j.tx_status as string;
         if (status === 'success') {
+          txManager.success(txId);
           onStatus?.('success', { txId });
           return 'success';
         }
         if (status === 'abort_by_post_condition' || status === 'failed') {
+          txManager.failed(txId, j.error || j.tx_result);
           onStatus?.('failed', { txId, reason: j.error || j.tx_result });
           return 'failed';
         }
+        txManager.confirming(txId);
         onStatus?.('pending', { txId, status });
       }
     } catch {}
@@ -120,10 +124,12 @@ export async function enterPuzzle({ puzzleId, entryFee, sender, network, onStatu
     anchorMode: 'any',
   };
   try {
+    txManager.open('enter-puzzle', network);
     onStatus?.('requesting_signature');
     const r = await requestContractCall(req);
     if (r.error) return { ok: false, error: r.error };
     const txId = r.txId!;
+    txManager.submitted(txId, network, 'enter-puzzle');
     onStatus?.('submitted', { txId });
     const f = await pollTx(txId, network, onStatus);
     return { ok: f === 'success', txId };
@@ -153,10 +159,12 @@ export async function submitSolution({ puzzleId, solution, solveTime, sender, ne
     anchorMode: 'any',
   };
   try {
+    txManager.open('submit-solution', network);
     onStatus?.('requesting_signature');
     const r = await requestContractCall(req);
     if (r.error) return { ok: false, error: r.error };
     const txId = r.txId!;
+    txManager.submitted(txId, network, 'submit-solution');
     onStatus?.('submitted', { txId });
     const f = await pollTx(txId, network, onStatus);
     return { ok: f === 'success', txId };
@@ -181,10 +189,12 @@ export async function claimPrize({ puzzleId, sender, network, onStatus }: ClaimP
     anchorMode: 'any',
   };
   try {
+    txManager.open('claim-prize', network);
     onStatus?.('requesting_signature');
     const r = await requestContractCall(req);
     if (r.error) return { ok: false, error: r.error };
     const txId = r.txId!;
+    txManager.submitted(txId, network, 'claim-prize');
     onStatus?.('submitted', { txId });
     const f = await pollTx(txId, network, onStatus);
     return { ok: f === 'success', txId };
