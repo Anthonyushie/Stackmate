@@ -1,5 +1,5 @@
 import puzzles from '../data/puzzles.json';
-import { Chess } from 'chess.js';
+import { Chess, validateFen } from 'chess.js'; // ✅ import validateFen
 
 export type Difficulty = 'beginner' | 'intermediate' | 'expert';
 
@@ -24,7 +24,7 @@ export function getPuzzlesByDifficulty(difficulty: Difficulty): Puzzle[] {
 }
 
 export function getPuzzleById(id: string): Puzzle | undefined {
-  for (const d of ['beginner','intermediate','expert'] as Difficulty[]) {
+  for (const d of ['beginner', 'intermediate', 'expert'] as Difficulty[]) {
     const found = DB[d].find(p => p.id === id);
     if (found) return found;
   }
@@ -39,25 +39,46 @@ export function getRandomPuzzle(difficulty: Difficulty): Puzzle | undefined {
 
 function ensureFenLegal(fen: string): boolean {
   try {
-    const chess = new Chess(fen);
-    return chess.validate_fen(fen).valid;
+    return validateFen(fen).ok; // ✅ use top-level validateFen
   } catch {
     return false;
   }
 }
 
-export function validateSolution(puzzleId: string, moves: string[]): { ok: boolean; reason?: string } {
+export function validateSolution(
+  puzzleId: string,
+  moves: string[]
+): { ok: boolean; reason?: string } {
   const p = getPuzzleById(puzzleId);
   if (!p) return { ok: false, reason: 'Puzzle not found' };
   if (!ensureFenLegal(p.fen)) return { ok: false, reason: 'Invalid FEN' };
 
   try {
     const chess = new Chess(p.fen);
+
+    // 1. Play moves to ensure legality
     for (const mv of moves) {
-      const res = chess.move(mv, { sloppy: true });
+      const res = chess.move(mv); // ✅ no sloppy mode
       if (res === null) return { ok: false, reason: `Illegal move: ${mv}` };
     }
-    return { ok: true };
+
+    // 2. Compare with stored solution
+    const correct = p.solution.map(m => m.trim());
+    const user = moves.map(m => m.trim());
+
+    if (correct.length !== user.length) {
+      return { ok: false, reason: 'Incorrect number of moves' };
+    }
+    for (let i = 0; i < correct.length; i++) {
+      if (correct[i] !== user[i]) {
+        return {
+          ok: false,
+          reason: `Move ${i + 1} incorrect: expected ${correct[i]}, got ${user[i]}`
+        };
+      }
+    }
+
+    return { ok: true }; // ✅ solution matches
   } catch (e: any) {
     return { ok: false, reason: e?.message || 'Validation error' };
   }
@@ -71,13 +92,12 @@ export async function hashSolution(moves: string[]): Promise<string> {
     const bytes = new Uint8Array(digest);
     return '0x' + Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
   }
-  // Fallback for non-browser environments (Node.js)
   try {
     const { createHash } = await import('crypto');
     const h = createHash('sha256').update(Buffer.from(input)).digest('hex');
     return '0x' + h;
   } catch {
-    // Last-resort naive hash (not cryptographically secure)
+    // last-resort fallback
     let h = 0;
     for (let i = 0; i < input.length; i++) h = (h * 31 + input[i]) >>> 0;
     return '0x' + h.toString(16).padStart(64, '0').slice(0, 64);
