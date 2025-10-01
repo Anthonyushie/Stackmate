@@ -14,7 +14,7 @@ export interface EnterPuzzleModalProps {
   puzzleId: number | bigint;
   difficulty: Difficulty;
   entryFeeMicro: bigint | number | string;
-  prizePoolMicro: bigint | number | string;
+  prizePoolMicro: bigint | number | string; 
   alreadyEntered?: boolean;
 }
 

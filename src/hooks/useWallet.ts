@@ -20,7 +20,7 @@ export interface WalletState {
   isFetchingBalance: boolean;
   error: string | null;
   connect: (provider?: WalletProviderId) => Promise<void>;
-  disconnect: () => Promise<void>;
+  disconnect: () => Promise<void>; 
   switchNetwork: (network: NetworkName) => Promise<void>;
   refresh: () => Promise<void>;
   getAddress: () => string | null;
