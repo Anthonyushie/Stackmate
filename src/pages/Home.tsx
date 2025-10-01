@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useQueries, useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import WalletConnect from '../components/WalletConnect';
@@ -8,7 +8,7 @@ import { getPuzzleInfo, getLeaderboard, type LeaderboardEntry, type PuzzleInfo }
 import { getApiBaseUrl, microToStx, type NetworkName, getNetwork } from '../lib/stacks';
 import { fetchCallReadOnlyFunction, uintCV, standardPrincipalCV, ClarityType } from '@stacks/transactions';
 import PuzzleCard from '../components/PuzzleCard';
-import { useEnterPuzzle } from '../hooks/useContract';
+import EnterPuzzleModal from '../components/EnterPuzzleModal';
 import { Trophy, Zap, Clock, Users, Coins, Crown, Target, Sparkles } from 'lucide-react';
 
 const brutal = 'rounded-none border-[3px] border-black shadow-[8px_8px_0_#000]';
@@ -85,7 +85,14 @@ function Stat({ icon, label, value, accent }: { icon: React.ReactNode; label: st
 export default function Home() {
   const { network, getAddress } = useWallet();
   const address = getAddress() || '';
-  const enter = useEnterPuzzle();
+  const [enterOpen, setEnterOpen] = useState(false);
+  const [enterData, setEnterData] = useState<{
+    puzzleId: number;
+    difficulty: 'beginner' | 'intermediate' | 'expert';
+    entryFeeMicro: bigint | number | string;
+    prizePoolMicro: bigint | number | string;
+    alreadyEntered?: boolean;
+  } | null>(null);
 
   const { data: activeIds = [], isLoading: activeLoading } = useActivePuzzles();
   const heightQ = useStacksHeight(network);
@@ -295,7 +302,14 @@ export default function Home() {
                   winner={Boolean(winner)}
                   onEnter={async () => {
                     if (!id || !info) return;
-                    await enter.mutateAsync({ puzzleId: id, entryFee: info.stakeAmount });
+                    setEnterData({
+                      puzzleId: id,
+                      difficulty: d.key,
+                      entryFeeMicro: info.stakeAmount,
+                      prizePoolMicro: info.prizePool,
+                      alreadyEntered: entered,
+                    });
+                    setEnterOpen(true);
                   }}
                 />
               );
@@ -369,6 +383,18 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        {enterData && (
+          <EnterPuzzleModal
+            open={enterOpen}
+            onClose={() => { setEnterOpen(false); setEnterData(null); }}
+            puzzleId={enterData.puzzleId}
+            difficulty={enterData.difficulty}
+            entryFeeMicro={enterData.entryFeeMicro}
+            prizePoolMicro={enterData.prizePoolMicro}
+            alreadyEntered={enterData.alreadyEntered}
+          />
+        )}
 
         <footer className="pb-8 text-xs opacity-70">Built for Stacks • Neo‑Brutalist UI • Framer Motion</footer>
       </div>
