@@ -28,8 +28,12 @@ export interface WalletState {
 
 const STACKS_ADDR_REGEX = /^(SP|ST)[A-Z0-9]{20,}$/i;
 
+function isValidAddress(addr: any): addr is string {
+  return typeof addr === 'string' && addr.length > 0 && STACKS_ADDR_REGEX.test(addr);
+}
+
 function pickAddressForNetwork(addresses: string[], network: NetworkName): string | null {
-  const norm = addresses.filter((a) => STACKS_ADDR_REGEX.test(a));
+  const norm = addresses.filter((a) => isValidAddress(a));
   if (!norm.length) return null;
   const preferPrefix = network === 'testnet' ? 'ST' : 'SP';
   const preferred = norm.find((a) => a.toUpperCase().startsWith(preferPrefix));
@@ -40,11 +44,23 @@ function collectAddressesFromStorage(storage: any): string[] {
   const out: string[] = [];
   try {
     if (!storage) return out;
+    
+    if (typeof storage === 'string') {
+      out.push(storage);
+      return out;
+    }
+    
     if (storage.addresses) {
       const { addresses } = storage;
       Object.keys(addresses).forEach((k) => {
         const arr = addresses[k];
-        if (Array.isArray(arr)) out.push(...arr);
+        if (Array.isArray(arr)) {
+          arr.forEach((item) => {
+            if (typeof item === 'string') out.push(item);
+          });
+        } else if (typeof arr === 'string') {
+          out.push(arr);
+        }
       });
     }
     if (storage.stxAddresses) {
@@ -52,7 +68,11 @@ function collectAddressesFromStorage(storage: any): string[] {
       Object.keys(stxAddresses).forEach((k) => {
         const v = stxAddresses[k];
         if (typeof v === 'string') out.push(v);
-        if (Array.isArray(v)) out.push(...v);
+        if (Array.isArray(v)) {
+          v.forEach((item) => {
+            if (typeof item === 'string') out.push(item);
+          });
+        }
       });
     }
     if (Array.isArray(storage.accounts)) {
@@ -63,7 +83,11 @@ function collectAddressesFromStorage(storage: any): string[] {
           const a = acc.addresses;
           if (typeof a?.mainnet === 'string') out.push(a.mainnet);
           if (typeof a?.testnet === 'string') out.push(a.testnet);
-          if (Array.isArray(a)) out.push(...a);
+          if (Array.isArray(a)) {
+            a.forEach((item) => {
+              if (typeof item === 'string') out.push(item);
+            });
+          }
         }
       }
     }
@@ -72,8 +96,15 @@ function collectAddressesFromStorage(storage: any): string[] {
       if (typeof s?.mainnet === 'string') out.push(s.mainnet);
       if (typeof s?.testnet === 'string') out.push(s.testnet);
     }
+    
+    if (typeof storage?.result === 'string') out.push(storage.result);
+    if (Array.isArray(storage?.result)) {
+      storage.result.forEach((item: any) => {
+        if (typeof item === 'string') out.push(item);
+      });
+    }
   } catch {}
-  return out;
+  return out.filter((addr) => typeof addr === 'string' && addr.length > 0);
 }
 
 function getAddressFromStorage(network: NetworkName): string | null {
@@ -176,6 +207,11 @@ export const useWallet = create<WalletState>((set, get) => ({
         addr = await getAddressFromProvider(get().network);
       }
 
+      if (addr && !isValidAddress(addr)) {
+        console.error('[useWallet] Invalid address format:', addr, typeof addr);
+        addr = null;
+      }
+
       const prov = (getSelectedProviderId() as WalletProviderId | null) ?? provider ?? null;
 
       console.log('[useWallet] Resolved address:', addr);
@@ -210,7 +246,11 @@ export const useWallet = create<WalletState>((set, get) => ({
   },
   switchNetwork: async (network) => {
     set({ network });
-    const addr = getAddressFromStorage(network) ?? (await getAddressFromProvider(network));
+    let addr = getAddressFromStorage(network) ?? (await getAddressFromProvider(network));
+    if (addr && !isValidAddress(addr)) {
+      console.error('[useWallet] Invalid address in switchNetwork:', addr);
+      addr = null;
+    }
     set({ address: addr });
 
     if (addr) {
@@ -226,7 +266,11 @@ export const useWallet = create<WalletState>((set, get) => ({
     }
   },
   refresh: async () => {
-    const addr = getAddressFromStorage(get().network) ?? (await getAddressFromProvider(get().network));
+    let addr = getAddressFromStorage(get().network) ?? (await getAddressFromProvider(get().network));
+    if (addr && !isValidAddress(addr)) {
+      console.error('[useWallet] Invalid address in refresh:', addr);
+      addr = null;
+    }
     if (addr) {
       set({ address: addr });
       try {
