@@ -5,10 +5,20 @@ import WalletConnect from '../components/WalletConnect';
 import useWallet from '../hooks/useWallet';
 import { useActivePuzzles } from '../hooks/useBlockchain';
 import { getPuzzleInfo, getLeaderboard, type LeaderboardEntry, type PuzzleInfo } from '../lib/contracts';
-import { getApiBaseUrl, microToStx, type NetworkName } from '../lib/stacks';
-import { Trophy, Zap, Clock, Users, Coins, Sword, Crown, Target, Sparkles } from 'lucide-react';
+import { getApiBaseUrl, microToStx, type NetworkName, getNetwork } from '../lib/stacks';
+import { fetchCallReadOnlyFunction, uintCV, standardPrincipalCV, ClarityType } from '@stacks/transactions';
+import PuzzleCard from '../components/PuzzleCard';
+import { useEnterPuzzle } from '../hooks/useContract';
+import { Trophy, Zap, Clock, Users, Coins, Crown, Target, Sparkles } from 'lucide-react';
 
 const brutal = 'rounded-none border-[3px] border-black shadow-[8px_8px_0_#000]';
+
+function getContractIds(network: NetworkName) {
+  const id = (network === 'testnet' ? (import.meta as any).env?.VITE_CONTRACT_TESTNET : (import.meta as any).env?.VITE_CONTRACT_MAINNET) as string | undefined;
+  if (!id || typeof id !== 'string' || !id.includes('.')) throw new Error('Missing contract id env var');
+  const [address, name] = id.split('.');
+  return { address, name };
+}
 
 function useStacksHeight(network: NetworkName) {
   return useQuery<number>({
@@ -75,6 +85,7 @@ function Stat({ icon, label, value, accent }: { icon: React.ReactNode; label: st
 export default function Home() {
   const { network, getAddress } = useWallet();
   const address = getAddress() || '';
+  const enter = useEnterPuzzle();
 
   const { data: activeIds = [], isLoading: activeLoading } = useActivePuzzles();
   const heightQ = useStacksHeight(network);
@@ -131,6 +142,39 @@ export default function Home() {
       enabled: Boolean(d.id),
       refetchInterval: 20000,
       refetchOnWindowFocus: false,
+    })),
+  });
+
+  const entryQueries = useQueries({
+    queries: displayList.map((d) => ({
+      queryKey: ['entry', network, address, String(d.id ?? '')],
+      enabled: Boolean(address && d.id),
+      refetchInterval: 15000,
+      refetchOnWindowFocus: false,
+      queryFn: async () => {
+        if (!address || !d.id) return null;
+        const { address: contractAddress, name: contractName } = getContractIds(network);
+        const stxNetwork = getNetwork(network);
+        const cv: any = await fetchCallReadOnlyFunction({
+          contractAddress,
+          contractName,
+          functionName: 'get-entry',
+          functionArgs: [uintCV(d.id), standardPrincipalCV(address)],
+          senderAddress: address,
+          network: stxNetwork,
+        });
+        if (cv?.type !== ClarityType.ResponseOk) return null;
+        const opt = cv.value;
+        if (opt?.type === ClarityType.OptionalSome) {
+          const t = opt.value;
+          const st = BigInt(t.data['solve-time']?.value ?? 0);
+          const ts = BigInt(t.data['timestamp']?.value ?? 0);
+          const ic = t.data['is-correct'];
+          const isCorrect = ic?.type === ClarityType.BoolTrue;
+          return { solveTime: st, timestamp: ts, isCorrect } as { solveTime: bigint; timestamp: bigint; isCorrect: boolean };
+        }
+        return null;
+      },
     })),
   });
 
@@ -226,51 +270,34 @@ export default function Home() {
           <div className="grid md:grid-cols-3 gap-6">
             {displayList.map((d, idx) => {
               const info = d.info as PuzzleInfo | null;
+              const id = d.id as number | undefined;
               const lb = leaders[idx] || [];
-              const best = lb.filter((x) => x.player?.toLowerCase() === address.toLowerCase()).map((x) => x.solveTime).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))[0];
-              const entryFee = info ? microToStx(info.stakeAmount) : d.fallbackFee;
-              const prize = info ? microToStx(info.prizePool) : '0';
-              const players = info ? Number(info.entryCount) : 0;
+              const best = lb
+                .filter((x) => x.player?.toLowerCase() === address.toLowerCase())
+                .map((x) => x.solveTime)
+                .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))[0] || null;
               const height = heightQ.data || 0;
-              const deadline = info ? Number(info.deadline) : 0;
-              const blocksLeft = Math.max(0, deadline - height);
-              const eta = blocksLeft > 0 ? `${blocksLeft} blocks • ≈ ${blocksToEta(blocksLeft)}` : 'Ended or pending';
-              const btnHref = d.id ? `/puzzle/${String(d.id)}` : '#';
+              const deadBlock = info ? Number(info.deadline) : 0;
+              const blocksLeft = Math.max(0, deadBlock - height);
+              const approxDeadline = Date.now() + blocksLeft * 600_000;
+              const entered = Boolean(entryQueries[idx]?.data);
+              const winner = info?.winner && address && info.winner.toLowerCase() === address.toLowerCase();
               return (
-                <motion.div
+                <PuzzleCard
                   key={d.label}
-                  initial={{ opacity: 0, y: 10 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 22, delay: idx * 0.05 }}
-                  className={`${brutal} bg-white/80 dark:bg-zinc-900/60 backdrop-blur p-5 flex flex-col`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="text-xl font-black">{d.label}</div>
-                    <div className={`${brutal} ${d.color} px-2 py-1 text-xs font-black`}>Entry {entryFee} STX</div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 mt-4 text-sm">
-                    <div className={`${brutal} bg-green-200 p-3 text-black`}>
-                      <div className="flex items-center gap-2 text-[10px] uppercase font-black"><Coins className="h-3 w-3" /> Prize Pool</div>
-                      <div className="text-lg font-black">{prize} STX</div>
-                    </div>
-                    <div className={`${brutal} bg-blue-200 p-3 text-black`}>
-                      <div className="flex items-center gap-2 text-[10px] uppercase font-black"><Users className="h-3 w-3" /> Players</div>
-                      <div className="text-lg font-black">{players}</div>
-                    </div>
-                    <div className={`${brutal} bg-yellow-200 p-3 text-black`}>
-                      <div className="flex items-center gap-2 text-[10px] uppercase font-black"><Clock className="h-3 w-3" /> Your Best</div>
-                      <div className="text-lg font-black">{best ? formatTimeSeconds(best) : '—'}</div>
-                    </div>
-                    <div className={`${brutal} bg-pink-200 p-3 text-black`}>
-                      <div className="flex items-center gap-2 text-[10px] uppercase font-black"><Trophy className="h-3 w-3" /> Deadline</div>
-                      <div className="text-xs font-black">{eta}</div>
-                    </div>
-                  </div>
-                  <a href={btnHref} className={`mt-4 px-4 py-3 bg-black text-white hover:bg-zinc-800 ${brutal} inline-flex items-center justify-center gap-2`}>
-                    <Sword className="h-4 w-4" /> Enter Puzzle
-                  </a>
-                </motion.div>
+                  difficulty={d.key}
+                  entryFee={info ? microToStx(info.stakeAmount) : d.fallbackFee}
+                  prizePool={info ? microToStx(info.prizePool) : '0'}
+                  playerCount={info ? Number(info.entryCount) : 0}
+                  userBestTime={best as any}
+                  deadline={approxDeadline}
+                  entered={entered}
+                  winner={Boolean(winner)}
+                  onEnter={async () => {
+                    if (!id || !info) return;
+                    await enter.mutateAsync({ puzzleId: id, entryFee: info.stakeAmount });
+                  }}
+                />
               );
             })}
           </div>
