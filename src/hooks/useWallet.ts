@@ -44,64 +44,72 @@ function collectAddressesFromStorage(storage: any): string[] {
   const out: string[] = [];
   try {
     if (!storage) return out;
-    
+
+    const pushFromItem = (item: any) => {
+      if (typeof item === 'string') {
+        out.push(item);
+        return;
+      }
+      if (item && typeof item === 'object') {
+        if (typeof item.address === 'string') out.push(item.address);
+        if (typeof item.stxAddress === 'string') out.push(item.stxAddress);
+        if (item.addresses) {
+          const a = item.addresses;
+          if (typeof a?.mainnet === 'string') out.push(a.mainnet);
+          if (typeof a?.testnet === 'string') out.push(a.testnet);
+          if (Array.isArray(a)) a.forEach((x) => typeof x === 'string' && out.push(x));
+        }
+      }
+    };
+
+    if (Array.isArray(storage)) {
+      storage.forEach(pushFromItem);
+    }
+
     if (typeof storage === 'string') {
       out.push(storage);
       return out;
     }
-    
+
     if (storage.addresses) {
       const { addresses } = storage;
       Object.keys(addresses).forEach((k) => {
-        const arr = addresses[k];
-        if (Array.isArray(arr)) {
-          arr.forEach((item) => {
-            if (typeof item === 'string') out.push(item);
-          });
-        } else if (typeof arr === 'string') {
-          out.push(arr);
+        const arrOrObj = addresses[k];
+        if (Array.isArray(arrOrObj)) {
+          arrOrObj.forEach(pushFromItem);
+        } else {
+          pushFromItem(arrOrObj);
         }
       });
     }
+
     if (storage.stxAddresses) {
       const { stxAddresses } = storage;
       Object.keys(stxAddresses).forEach((k) => {
         const v = stxAddresses[k];
-        if (typeof v === 'string') out.push(v);
-        if (Array.isArray(v)) {
-          v.forEach((item) => {
-            if (typeof item === 'string') out.push(item);
-          });
-        }
+        if (Array.isArray(v)) v.forEach(pushFromItem);
+        else pushFromItem(v);
       });
     }
+
     if (Array.isArray(storage.accounts)) {
       for (const acc of storage.accounts) {
-        if (typeof acc?.stxAddress === 'string') out.push(acc.stxAddress);
-        if (typeof acc?.address === 'string') out.push(acc.address);
-        if (acc?.addresses) {
-          const a = acc.addresses;
-          if (typeof a?.mainnet === 'string') out.push(a.mainnet);
-          if (typeof a?.testnet === 'string') out.push(a.testnet);
-          if (Array.isArray(a)) {
-            a.forEach((item) => {
-              if (typeof item === 'string') out.push(item);
-            });
-          }
-        }
+        pushFromItem(acc);
       }
     }
+
     if (storage?.accounts?.stx) {
       const s = storage.accounts.stx;
-      if (typeof s?.mainnet === 'string') out.push(s.mainnet);
-      if (typeof s?.testnet === 'string') out.push(s.testnet);
+      pushFromItem(s?.mainnet);
+      pushFromItem(s?.testnet);
     }
-    
+
     if (typeof storage?.result === 'string') out.push(storage.result);
-    if (Array.isArray(storage?.result)) {
-      storage.result.forEach((item: any) => {
-        if (typeof item === 'string') out.push(item);
-      });
+    if (Array.isArray(storage?.result)) storage.result.forEach(pushFromItem);
+    if (storage?.result?.addresses) {
+      const ra = storage.result.addresses;
+      if (Array.isArray(ra)) ra.forEach(pushFromItem);
+      else pushFromItem(ra);
     }
   } catch {}
   return out.filter((addr) => typeof addr === 'string' && addr.length > 0);
