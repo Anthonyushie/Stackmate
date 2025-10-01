@@ -93,13 +93,17 @@ export default function ChessPuzzleSolver({ puzzleId, fen, solution, onSolve }: 
     if (i < solution.length && i % 2 === 1) {
       const san = solution[i];
       try {
-        const mv = g.move(san, { sloppy: true });
-        if (mv) {
-          setGame(g);
-          setBoardFen(g.fen());
-          setHistory((h) => [...h, san]);
-          setLastMove({ from: mv.from as Square, to: mv.to as Square });
-          setIndex(i + 1);
+        const vm = g.moves({ verbose: true }) as Move[];
+        const match = vm.find((m) => m.san === san);
+        if (match) {
+          const mv = g.move({ from: match.from, to: match.to, promotion: match.promotion });
+          if (mv) {
+            setGame(g);
+            setBoardFen(g.fen());
+            setHistory((h) => [...h, san]);
+            setLastMove({ from: mv.from as Square, to: mv.to as Square });
+            setIndex(i + 1);
+          }
         }
       } catch {}
     }
@@ -167,7 +171,7 @@ export default function ChessPuzzleSolver({ puzzleId, fen, solution, onSolve }: 
     return map;
   }, []);
 
-  const onDrop = useCallback((sourceSquare: Square, targetSquare: Square) => {
+  const onDrop = useCallback((sourceSquare: Square, targetSquare: Square, _piece?: string) => {
     if (solved) return false;
     const g = new Chess(game.fen());
     // Find a legal move matching from-to
@@ -244,7 +248,6 @@ export default function ChessPuzzleSolver({ puzzleId, fen, solution, onSolve }: 
           <div className="text-xs font-black">Time: {timeDisplay} {penalties > 0 && <span className="opacity-60">(+{penalties}s)</span>}</div>
         </div>
         <Chessboard
-          id={`puzzle-${puzzleId}`}
           position={boardFen}
           onPieceDrop={onDrop}
           customBoardStyle={boardStyle}
