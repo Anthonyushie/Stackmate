@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { getPuzzleInfo as rpcGetPuzzleInfo, getLeaderboard as rpcGetLeaderboard, getUserStats as rpcGetUserStats, type PuzzleInfo, type LeaderboardEntry } from '../lib/contracts';
-import { callReadOnlyFunction, uintCV, ClarityType, standardPrincipalCV } from '@stacks/transactions';
+import { fetchCallReadOnlyFunction, uintCV, ClarityType, standardPrincipalCV } from '@stacks/transactions';
 import { getNetwork, type NetworkName, fetchStxBalance, type StxBalance } from '../lib/stacks';
 import useWallet from './useWallet';
 
@@ -56,7 +56,7 @@ async function fetchActivePuzzlesInternal(network: NetworkName, senderAddress?: 
   const { address: contractAddress, name: contractName } = getContractIds(network);
   const stxNetwork = getNetwork(network);
   const sender = senderAddress || contractAddress;
-  const countCv = await callReadOnlyFunction({
+  const countCv = await fetchCallReadOnlyFunction({
     contractAddress,
     contractName,
     functionName: 'get-puzzle-count',
@@ -71,7 +71,7 @@ async function fetchActivePuzzlesInternal(network: NetworkName, senderAddress?: 
   const max = Number(total);
   for (let i = 1; i <= max; i++) {
     try {
-      const cv = await callReadOnlyFunction({
+      const cv = await fetchCallReadOnlyFunction({
         contractAddress,
         contractName,
         functionName: 'is-puzzle-active',
