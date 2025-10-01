@@ -235,7 +235,7 @@ export default function Home() {
               const deadline = info ? Number(info.deadline) : 0;
               const blocksLeft = Math.max(0, deadline - height);
               const eta = blocksLeft > 0 ? `${blocksLeft} blocks • ≈ ${blocksToEta(blocksLeft)}` : 'Ended or pending';
-              const btnHref = d.id ? `/?puzzle=${String(d.id)}` : '#';
+              const btnHref = d.id ? `/puzzle/${String(d.id)}` : '#';
               return (
                 <motion.div
                   key={d.label}
