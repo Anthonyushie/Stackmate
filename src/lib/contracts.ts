@@ -1,4 +1,4 @@
-import { callReadOnlyFunction, ClarityType, cvToJSON, hexToCV, standardPrincipalCV, uintCV, bufferCV, cvToHex } from '@stacks/transactions';
+import { fetchCallReadOnlyFunction, ClarityType, cvToJSON, hexToCV, standardPrincipalCV, uintCV, bufferCV, cvToHex } from '@stacks/transactions';
 import type { StacksNetwork } from '@stacks/network';
 import { getNetwork, getApiBaseUrl, type NetworkName } from './stacks';
 
@@ -199,7 +199,7 @@ export async function getPuzzleInfo({ puzzleId, network }: ReadPuzzleInfoParams)
   const { address: contractAddress, name: contractName } = getContractIds(network);
   const senderAddress = (await pickSender(network)) || contractAddress;
   const stxNetwork: StacksNetwork = getNetwork(network);
-  const cv = await callReadOnlyFunction({
+  const cv = await fetchCallReadOnlyFunction({
     contractAddress,
     contractName,
     functionName: 'get-puzzle-info',
@@ -227,7 +227,7 @@ export async function getUserStats({ address, network }: ReadUserStatsParams) {
   const { address: contractAddress, name: contractName } = getContractIds(network);
   const stxNetwork: StacksNetwork = getNetwork(network);
   const senderAddress = (await pickSender(network)) || contractAddress;
-  const cv = await callReadOnlyFunction({
+  const cv = await fetchCallReadOnlyFunction({
     contractAddress,
     contractName,
     functionName: 'get-user-stats',
