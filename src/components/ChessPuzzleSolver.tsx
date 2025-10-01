@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Chess, Move, Square } from 'chess.js';
+import { Chess, Move, type Square } from 'chess.js';
 import { Chessboard } from 'react-chessboard';
 import { motion, AnimatePresence } from 'framer-motion';
+import type { JSX } from 'react/jsx-runtime';
 
 type SolveStats = {
   puzzleId: string;
