@@ -94,7 +94,7 @@ export default function ChessPuzzleSolver({ puzzleId, fen, solution, onSolve }: 
     if (i < solution.length && i % 2 === 1) {
       const san = solution[i];
       try {
-        const mv = g.move(san, { sloppy: true });
+        const mv = g.move(san);
         if (mv) {
           setGame(g);
           setBoardFen(g.fen());
@@ -245,17 +245,18 @@ export default function ChessPuzzleSolver({ puzzleId, fen, solution, onSolve }: 
           <div className="text-xs font-black">Time: {timeDisplay} {penalties > 0 && <span className="opacity-60">(+{penalties}s)</span>}</div>
         </div>
         <Chessboard
-          id={`puzzle-${puzzleId}`}
-          position={boardFen}
-          onPieceDrop={onDrop}
-          customBoardStyle={boardStyle}
-          customDarkSquareStyle={{ backgroundColor: customDark }}
-          customLightSquareStyle={{ backgroundColor: customLight }}
-          customSquareStyles={squareStyles}
-          boardWidth={boardSize}
-          animationDuration={300}
-          areArrowsAllowed={false}
-          customPieces={customPieces}
+          {...({
+            position: boardFen,
+            onPieceDrop: onDrop,
+            customBoardStyle: boardStyle,
+            customDarkSquareStyle: { backgroundColor: customDark },
+            customLightSquareStyle: { backgroundColor: customLight },
+            customSquareStyles: squareStyles,
+            boardWidth: boardSize,
+            animationDuration: 300,
+            areArrowsAllowed: false,
+            customPieces: customPieces,
+          } as any)}
         />
         <div className="mt-3 flex gap-2">
           <button className={`px-3 py-2 bg-blue-300 hover:bg-blue-400 ${brutal}`} onClick={useHint} disabled={solved}>Hint (-30s)</button>
