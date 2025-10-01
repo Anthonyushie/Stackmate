@@ -5,10 +5,11 @@ import { Chess, type Move, type Square } from 'chess.js';
 import { Chessboard } from 'react-chessboard';
 import { Trophy, Clock, Users, Lightbulb, RotateCcw, FlagTriangleRight, Share2, X } from 'lucide-react';
 import useWallet from '../hooks/useWallet';
-import { getPuzzlesByDifficulty, type Puzzle } from '../lib/puzzles-db';
+import { getPuzzlesByDifficulty, type Puzzle, hashSolution } from '../lib/puzzles-db';
 import { getPuzzleInfo, getLeaderboard, type LeaderboardEntry } from '../lib/contracts';
 import { getApiBaseUrl, microToStx, type NetworkName, getNetwork } from '../lib/stacks';
 import { fetchCallReadOnlyFunction, uintCV, standardPrincipalCV, ClarityType } from '@stacks/transactions';
+import { useSubmitSolution } from '../hooks/useContract';
 
 const brutal = 'rounded-none border-[3px] border-black shadow-[8px_8px_0_#000]';
 
@@ -32,6 +33,11 @@ export default function SolvePuzzle() {
   const [info, setInfo] = useState<any | null>(null);
   const [leaders, setLeaders] = useState<LeaderboardEntry[]>([]);
   const [entered, setEntered] = useState<boolean>(false);
+  const submit = useSubmitSolution();
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [txId, setTxId] = useState<string | null>(null);
+  const submittedRef = useRef(false);
 
   // Timer
   const [elapsed, setElapsed] = useState(0);
@@ -248,6 +254,31 @@ export default function SolvePuzzle() {
 
   const totalTime = useMemo(() => elapsed + penalties, [elapsed, penalties]);
 
+  useEffect(() => {
+    if (!solved || !entered || !localPuzzle) return;
+    if (submittedRef.current) return;
+    submittedRef.current = true;
+    (async () => {
+      try {
+        setSubmitting(true);
+        setSubmitError(null);
+        const hash = await hashSolution(history);
+        const res: any = await submit.mutateAsync({ puzzleId: numericId, solution: hash, solveTime: totalTime, onStatus: (s, d) => { if (d?.txId) setTxId(d.txId); } });
+        if (!res?.ok) {
+          setSubmitError(res?.error || 'Submit failed');
+        } else {
+          setSubmitError(null);
+          // Force refresh leaderboard after a short delay
+          try { const lb = await getLeaderboard({ puzzleId: numericId, network }); setLeaders(lb); } catch {}
+        }
+      } catch (e: any) {
+        setSubmitError(e?.message || 'Submit failed');
+      } finally {
+        setSubmitting(false);
+      }
+    })();
+  }, [solved]);
+
   const yourRank = useMemo(() => {
     if (!leaders || !leaders.length) return 1;
     const t = BigInt(totalTime);
@@ -414,6 +445,31 @@ export default function SolvePuzzle() {
                   <div className="text-lg font-black">#{yourRank}</div>
                 </div>
               </div>
+
+              <div className="mb-3">
+                <div className="text-xs font-bold uppercase mb-2">Submission</div>
+                <div className={`${brutal} p-2 ${submitting ? 'bg-blue-200' : submitError ? 'bg-red-200' : 'bg-white'}`}>
+                  {submitting && <div className="text-xs font-black">Submitting your result…</div>}
+                  {!submitting && submitError && (
+                    <div className="flex items-center justify-between gap-2 text-xs">
+                      <div className="font-black">{submitError}</div>
+                      <button className={`${brutal} bg-black text-white px-2 py-1`} onClick={async () => {
+                        submittedRef.current = false;
+                        setTxId(null);
+                        setSubmitError(null);
+                        setSolved(true);
+                      }}>Retry</button>
+                    </div>
+                  )}
+                  {!submitting && !submitError && txId && (
+                    <div className="text-xs">Tx submitted: <span className="font-mono break-all">{txId}</span></div>
+                  )}
+                  {!submitting && !submitError && !txId && (
+                    <div className="text-xs opacity-70">Submitted.</div>
+                  )}
+                </div>
+              </div>
+
               <div className="mb-3">
                 <div className="text-xs font-bold uppercase mb-2">Leaderboard</div>
                 <div className="grid gap-2 max-h-[200px] overflow-auto pr-1">
