@@ -4,6 +4,7 @@ import Home from './pages/Home';
 import PuzzlePage from './pages/Puzzle';
 import SolvePuzzle from './pages/SolvePuzzle';
 import { Toaster } from 'sonner';
+import TransactionStatus from './components/TransactionStatus';
 
 const queryClient = new QueryClient();
 
@@ -16,6 +17,7 @@ export default function App() {
           <Route path="/puzzle/:id" element={<PuzzlePage />} />
           <Route path="/solve/:difficulty/:puzzleId" element={<SolvePuzzle />} />
         </Routes>
+        <TransactionStatus />
         <Toaster richColors position="top-right" />
       </BrowserRouter>
     </QueryClientProvider>
