@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Trophy, Users, Clock, Coins, Play, CheckCircle2, Crown } from 'lucide-react';
+import { Trophy, Users, Clock, Coins, Play, CheckCircle2, Crown, Zap } from 'lucide-react';
+import { colors, shadows, getDifficultyColor } from '../styles/neo-brutal-theme';
+import NeoButton from './neo/NeoButton';
 
 export type Difficulty = 'beginner' | 'intermediate' | 'expert';
 
@@ -16,8 +18,6 @@ export interface PuzzleCardProps {
   winner?: boolean;
   className?: string;
 }
-
-const brutal = 'rounded-none border-[3px] border-black shadow-[8px_8px_0_#000]';
 
 function fmtStx(v: string | number | bigint): string {
   if (typeof v === 'string') return v;
@@ -37,7 +37,6 @@ function fmtTime(total: number | bigint | null | undefined) {
 
 function deadlineToMs(deadline: number | Date): number {
   if (deadline instanceof Date) return deadline.getTime();
-  // heuristics: treat numbers larger than 1e12 as ms, otherwise seconds
   return deadline > 1e12 ? deadline : deadline * 1000;
 }
 
@@ -57,10 +56,10 @@ function useCountdown(deadline: number | Date) {
   return { secondsLeft: diff, label };
 }
 
-const schemes: Record<Difficulty, { badge: string; accented: string; light: string; dark: string } > = {
-  beginner: { badge: 'bg-emerald-300', accented: 'bg-emerald-200', light: 'from-emerald-200 to-emerald-100', dark: 'from-emerald-800/60 to-emerald-700/40' },
-  intermediate: { badge: 'bg-cyan-300', accented: 'bg-cyan-200', light: 'from-cyan-200 to-cyan-100', dark: 'from-cyan-800/60 to-cyan-700/40' },
-  expert: { badge: 'bg-violet-300', accented: 'bg-violet-200', light: 'from-violet-200 to-violet-100', dark: 'from-violet-800/60 to-violet-700/40' },
+const difficultyRotations: Record<Difficulty, number> = {
+  beginner: -2,
+  intermediate: 1,
+  expert: -1,
 };
 
 export default function PuzzleCard({
@@ -75,7 +74,7 @@ export default function PuzzleCard({
   winner = false,
   className = '',
 }: PuzzleCardProps) {
-  const scheme = schemes[difficulty];
+  const bgColor = getDifficultyColor(difficulty);
   const { label: countdown, secondsLeft } = useCountdown(deadline);
   const ended = secondsLeft <= 0;
 
@@ -94,76 +93,325 @@ export default function PuzzleCard({
   }, [pp]);
 
   const canEnter = !loading && !entered && !ended;
+  const rotation = difficultyRotations[difficulty];
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      whileInView={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, y: 30, scale: 0.9, rotate: rotation }}
+      whileInView={{ opacity: 1, y: 0, scale: 1, rotate: rotation }}
       viewport={{ once: true }}
-      whileHover={{ y: -4, rotate: -0.2 }}
-      transition={{ type: 'spring', stiffness: 320, damping: 22 }}
-      className={`${brutal} bg-white/80 dark:bg-zinc-900/60 backdrop-blur p-5 relative overflow-hidden ${className}`}
+      whileHover={{ y: -12, rotate: 0, scale: 1.02 }}
+      transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+      style={{
+        backgroundColor: bgColor,
+        border: `6px solid ${colors.border}`,
+        boxShadow: shadows.brutal,
+        padding: '32px',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+      className={className}
     >
-      <div className="absolute inset-0 -z-10 opacity-60">
-        <div className={`absolute -inset-6 bg-gradient-to-br ${scheme.light} dark:${scheme.dark}`} />
-      </div>
+      {/* Stripe pattern overlay */}
+      <div 
+        className="stripes-pattern absolute inset-0 pointer-events-none"
+        style={{ opacity: 0.1 }}
+      />
 
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <div className={`px-2 py-1 ${brutal} ${scheme.badge} text-black text-xs font-black uppercase tracking-wider`}>{difficulty}</div>
-          <div className={`px-2 py-1 ${brutal} ${scheme.accented} text-black text-[10px] font-black uppercase tracking-wider`}>Entry {fmtStx(entryFee)} STX</div>
+      {/* Header with badges */}
+      <div className="flex items-start justify-between gap-3 mb-6 relative z-10">
+        <div style={{
+          background: colors.dark,
+          border: `4px solid ${colors.border}`,
+          boxShadow: shadows.brutalSmall,
+          padding: '8px 16px',
+          transform: 'rotate(-2deg)',
+        }}>
+          <div style={{
+            fontFamily: "'Space Grotesk', sans-serif",
+            fontWeight: 900,
+            fontSize: '20px',
+            textTransform: 'uppercase',
+            color: colors.white,
+            letterSpacing: '-0.02em',
+          }}>
+            {difficulty}
+          </div>
         </div>
-        <div className="flex gap-2">
+
+        <div className="flex flex-col gap-2">
           {winner && (
-            <div className={`px-2 py-1 ${brutal} bg-yellow-300 text-black text-[10px] font-black uppercase tracking-wider flex items-center gap-1`}>
-              <Crown className="h-3 w-3" /> Winner
-            </div>
+            <motion.div
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: 'spring', stiffness: 300 }}
+              style={{
+                background: colors.primary,
+                border: `3px solid ${colors.border}`,
+                boxShadow: shadows.brutalSmall,
+                padding: '6px 12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              <Crown className="h-4 w-4" style={{ color: colors.dark }} />
+              <span style={{ fontWeight: 900, fontSize: '12px', textTransform: 'uppercase', color: colors.dark }}>
+                WINNER
+              </span>
+            </motion.div>
           )}
           {entered && (
-            <div className={`px-2 py-1 ${brutal} bg-black text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1`}>
-              <CheckCircle2 className="h-3 w-3" /> Entered
-            </div>
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              style={{
+                background: colors.accent2,
+                border: `3px solid ${colors.border}`,
+                boxShadow: shadows.brutalSmall,
+                padding: '6px 12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              <CheckCircle2 className="h-4 w-4" style={{ color: colors.dark }} />
+              <span style={{ fontWeight: 900, fontSize: '12px', textTransform: 'uppercase', color: colors.dark }}>
+                ENTERED
+              </span>
+            </motion.div>
           )}
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-        <motion.div animate={pulse ? { scale: [1, 1.05, 1] } : {}} transition={{ duration: 0.6 }} className={`${brutal} bg-white/90 dark:bg-zinc-800/60 p-3`}>
-          <div className="flex items-center gap-2 text-[10px] uppercase font-black"><Coins className="h-3 w-3" /> Prize Pool</div>
-          <div className="text-xl font-black">{pp} STX</div>
-        </motion.div>
-        <div className={`${brutal} bg-white/90 dark:bg-zinc-800/60 p-3`}>
-          <div className="flex items-center gap-2 text-[10px] uppercase font-black"><Users className="h-3 w-3" /> Players</div>
-          <div className="text-xl font-black">{playerCount}</div>
+      {/* Entry fee badge */}
+      <div style={{
+        background: colors.white,
+        border: `4px solid ${colors.border}`,
+        boxShadow: shadows.brutalSmall,
+        padding: '12px 16px',
+        marginBottom: '24px',
+        transform: 'rotate(1deg)',
+      }}>
+        <div style={{
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: '14px',
+          fontWeight: 700,
+          marginBottom: '4px',
+          color: colors.dark,
+        }}>
+          ENTRY FEE
         </div>
-        <div className={`${brutal} bg-white/90 dark:bg-zinc-800/60 p-3`}>
-          <div className="flex items-center gap-2 text-[10px] uppercase font-black"><Clock className="h-3 w-3" /> Your Best</div>
-          <div className="text-xl font-black">{fmtTime(userBestTime)}</div>
-        </div>
-        <div className={`${brutal} bg-white/90 dark:bg-zinc-800/60 p-3`}>
-          <div className="flex items-center gap-2 text-[10px] uppercase font-black"><Clock className="h-3 w-3" /> Deadline</div>
-          <div className={`text-base font-black ${ended ? 'text-red-600' : ''}`}>{ended ? 'Ended' : countdown}</div>
+        <div style={{
+          fontFamily: "'Space Grotesk', sans-serif",
+          fontWeight: 900,
+          fontSize: '24px',
+          color: colors.dark,
+        }}>
+          {fmtStx(entryFee)} STX
         </div>
       </div>
 
-      <div className="mt-4">
-        <button
-          onClick={async () => {
-            if (!canEnter) return;
-            try {
-              setLoading(true);
-              await Promise.resolve(onEnter());
-            } finally {
-              setLoading(false);
-            }
-          }}
-          disabled={!canEnter}
-          className={`${brutal} inline-flex items-center justify-center gap-2 px-4 py-3 ${canEnter ? 'bg-black text-white hover:bg-zinc-800' : 'bg-zinc-400 text-white cursor-not-allowed'} w-full`}
-        >
-          <Play className={`h-4 w-4 ${loading ? 'animate-pulse' : ''}`} />
-          <span className="text-sm font-black tracking-tight">{loading ? 'Entering…' : entered ? 'Already Entered' : ended ? 'Closed' : 'Enter Puzzle'}</span>
-        </button>
+      {/* Prize Pool - MASSIVE */}
+      <motion.div
+        animate={pulse ? { 
+          scale: [1, 1.1, 1], 
+          rotate: [0, -3, 3, 0] 
+        } : {}}
+        transition={{ duration: 0.5, type: 'spring', stiffness: 300 }}
+        style={{
+          background: colors.dark,
+          border: `6px solid ${colors.border}`,
+          boxShadow: shadows.brutalLarge,
+          padding: '24px',
+          marginBottom: '20px',
+          textAlign: 'center',
+          transform: 'rotate(-2deg)',
+        }}
+      >
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          marginBottom: '8px',
+        }}>
+          <Trophy className="h-6 w-6" style={{ color: colors.primary }} />
+          <div style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: '16px',
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            color: colors.primary,
+          }}>
+            PRIZE POOL
+          </div>
+        </div>
+        <div style={{
+          fontFamily: "'Space Grotesk', sans-serif",
+          fontWeight: 900,
+          fontSize: '56px',
+          color: colors.white,
+          lineHeight: 1,
+          textShadow: `4px 4px 0px ${colors.primary}`,
+        }}>
+          {pp}
+        </div>
+        <div style={{
+          fontFamily: "'Space Grotesk', sans-serif",
+          fontWeight: 900,
+          fontSize: '32px',
+          color: colors.primary,
+          marginTop: '4px',
+        }}>
+          STX
+        </div>
+      </motion.div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-3 gap-3 mb-6">
+        <div style={{
+          background: colors.white,
+          border: `3px solid ${colors.border}`,
+          boxShadow: shadows.brutalSmall,
+          padding: '12px',
+          textAlign: 'center',
+        }}>
+          <Users className="h-4 w-4 mx-auto mb-2" style={{ color: colors.dark }} />
+          <div style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: '10px',
+            fontWeight: 700,
+            marginBottom: '4px',
+            color: colors.dark,
+          }}>
+            PLAYERS
+          </div>
+          <div style={{
+            fontFamily: "'Space Grotesk', sans-serif",
+            fontWeight: 900,
+            fontSize: '24px',
+            color: colors.dark,
+          }}>
+            {playerCount}
+          </div>
+        </div>
+
+        <div style={{
+          background: colors.white,
+          border: `3px solid ${colors.border}`,
+          boxShadow: shadows.brutalSmall,
+          padding: '12px',
+          textAlign: 'center',
+        }}>
+          <Clock className="h-4 w-4 mx-auto mb-2" style={{ color: colors.dark }} />
+          <div style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: '10px',
+            fontWeight: 700,
+            marginBottom: '4px',
+            color: colors.dark,
+          }}>
+            YOUR BEST
+          </div>
+          <div style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontWeight: 700,
+            fontSize: '18px',
+            color: colors.dark,
+          }}>
+            {fmtTime(userBestTime)}
+          </div>
+        </div>
+
+        <div style={{
+          background: ended ? colors.error : colors.white,
+          border: `3px solid ${colors.border}`,
+          boxShadow: shadows.brutalSmall,
+          padding: '12px',
+          textAlign: 'center',
+        }}>
+          <Clock className="h-4 w-4 mx-auto mb-2" style={{ color: ended ? colors.white : colors.dark }} />
+          <div style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: '10px',
+            fontWeight: 700,
+            marginBottom: '4px',
+            color: ended ? colors.white : colors.dark,
+          }}>
+            {ended ? 'ENDED' : 'TIME LEFT'}
+          </div>
+          <div style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontWeight: 700,
+            fontSize: '14px',
+            color: ended ? colors.white : colors.dark,
+          }}>
+            {ended ? '00:00' : countdown}
+          </div>
+        </div>
       </div>
+
+      {/* Enter Button */}
+      <motion.button
+        whileHover={canEnter ? { scale: 1.02, y: -2 } : {}}
+        whileTap={canEnter ? { scale: 0.98, y: 2 } : {}}
+        onClick={async () => {
+          if (!canEnter) return;
+          try {
+            setLoading(true);
+            await Promise.resolve(onEnter());
+          } finally {
+            setLoading(false);
+          }
+        }}
+        disabled={!canEnter}
+        style={{
+          width: '100%',
+          background: canEnter ? colors.dark : '#999',
+          border: `5px solid ${colors.border}`,
+          boxShadow: canEnter ? shadows.brutal : shadows.brutalSmall,
+          padding: '20px',
+          cursor: canEnter ? 'pointer' : 'not-allowed',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '12px',
+          fontFamily: "'Space Grotesk', sans-serif",
+          fontWeight: 900,
+          fontSize: '24px',
+          textTransform: 'uppercase',
+          color: colors.white,
+          letterSpacing: '-0.02em',
+        }}
+      >
+        {loading ? (
+          <>
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+            >
+              <Zap className="h-6 w-6" />
+            </motion.div>
+            ENTERING...
+          </>
+        ) : entered ? (
+          <>
+            <CheckCircle2 className="h-6 w-6" />
+            ENTERED
+          </>
+        ) : ended ? (
+          <>
+            <Clock className="h-6 w-6" />
+            CLOSED
+          </>
+        ) : (
+          <>
+            <Play className="h-6 w-6" fill="currentColor" />
+            ENTER NOW
+          </>
+        )}
+      </motion.button>
     </motion.div>
   );
 }

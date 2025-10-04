@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import { useQueries, useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import { Trophy, Zap, Clock, Users, Coins, Crown, Target, Sparkles, Flame, Star } from 'lucide-react';
 import WalletConnect from '../components/WalletConnect';
 import NotificationBell from '../components/NotificationBell';
-import { Link } from 'react-router-dom';
 import useWallet from '../hooks/useWallet';
 import { useActivePuzzles } from '../hooks/useBlockchain';
 import { getPuzzleInfo, getLeaderboard, type LeaderboardEntry, type PuzzleInfo } from '../lib/contracts';
@@ -12,9 +13,10 @@ import { fetchCallReadOnlyFunction, uintCV, standardPrincipalCV, ClarityType } f
 import PuzzleCard from '../components/PuzzleCard';
 import EnterPuzzleModal from '../components/EnterPuzzleModal';
 import PuzzleCardSkeleton from '../components/skeletons/PuzzleCardSkeleton';
-import { Trophy, Zap, Clock, Users, Coins, Crown, Target, Sparkles } from 'lucide-react';
-
-const brutal = 'rounded-none border-[3px] border-black shadow-[8px_8px_0_#000]';
+import NeoButton from '../components/neo/NeoButton';
+import NeoCard from '../components/neo/NeoCard';
+import NeoBadge from '../components/neo/NeoBadge';
+import { colors, shadows, animations, getRotation } from '../styles/neo-brutal-theme';
 
 function getContractIds(network: NetworkName) {
   const id = (network === 'testnet' ? (import.meta as any).env?.VITE_CONTRACT_TESTNET : (import.meta as any).env?.VITE_CONTRACT_MAINNET) as string | undefined;
@@ -47,44 +49,6 @@ function formatTimeSeconds(total: number | bigint) {
   return `${mm}:${ss}`;
 }
 
-function blocksToEta(blocksLeft: number) {
-  const sec = Math.max(0, Math.floor(blocksLeft * 600));
-  const h = Math.floor(sec / 3600);
-  const m = Math.floor((sec % 3600) / 60);
-  const s = sec % 60;
-  const parts = [h ? `${h}h` : null, m ? `${m}m` : null, (!h && !m) ? `${s}s` : null].filter(Boolean);
-  return parts.join(' ');
-}
-
-function Piece({ glyph, x, y, delay = 0 }: { glyph: string; x: string; y: string; delay?: number }) {
-  return (
-    <motion.span
-      className="absolute select-none pointer-events-none text-black/40 dark:text-white/20"
-      style={{ left: x, top: y }}
-      initial={{ y: -10, opacity: 0 }}
-      animate={{ y: [0, -6, 0, 6, 0], opacity: 1 }}
-      transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut', delay }}
-    >
-      <span className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl">{glyph}</span>
-    </motion.span>
-  );
-}
-
-function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div className={`${brutal} bg-white/80 dark:bg-zinc-900/60 backdrop-blur p-5`}>{children}</div>
-  );
-}
-
-function Stat({ icon, label, value, accent }: { icon: React.ReactNode; label: string; value: string; accent: string }) {
-  return (
-    <div className={`${brutal} ${accent} p-4 text-black dark:text-zinc-900`}> 
-      <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider">{icon}<span>{label}</span></div>
-      <div className="text-2xl font-black mt-1">{value}</div>
-    </div>
-  );
-}
-
 export default function Home() {
   const { network, getAddress } = useWallet();
   const address = getAddress() || '';
@@ -110,8 +74,6 @@ export default function Home() {
     })),
   });
 
-  const infos = useMemo(() => infoQueries.map((q) => q.data).filter(Boolean) as PuzzleInfo[], [infoQueries]);
-
   const pairs = useMemo(() => {
     return (activeIds || []).map((id, i) => ({ id, info: infoQueries[i]?.data as PuzzleInfo | undefined }))
       .filter((p) => p.info) as Array<{ id: number; info: PuzzleInfo }>;
@@ -128,9 +90,9 @@ export default function Home() {
 
   const displayList = useMemo(() => {
     const order: Array<{ key: 'beginner'|'intermediate'|'expert'; label: string; fallbackFee: string; color: string }>= [
-      { key: 'beginner', label: 'Beginner', fallbackFee: '0.5', color: 'bg-yellow-300' },
-      { key: 'intermediate', label: 'Intermediate', fallbackFee: '2', color: 'bg-blue-300' },
-      { key: 'expert', label: 'Expert', fallbackFee: '5', color: 'bg-pink-300' },
+      { key: 'beginner', label: 'Beginner', fallbackFee: '0.5', color: colors.beginner },
+      { key: 'intermediate', label: 'Intermediate', fallbackFee: '2', color: colors.intermediate },
+      { key: 'expert', label: 'Expert', fallbackFee: '5', color: colors.expert },
     ];
     return order.map((o) => {
       const pair = (byDifficulty as any)[o.key] as { id: number; info: PuzzleInfo } | null;
@@ -147,22 +109,22 @@ export default function Home() {
 
   const leaderboardsQueries = useQueries({
     queries: displayList.map((d) => ({
-      queryKey: ['leaderboard', network, d.label, String(d.id ?? '0')],
-      queryFn: () => (d.id ? getLeaderboard({ puzzleId: d.id, network }) : Promise.resolve([] as LeaderboardEntry[])),
+      queryKey: ['leaderboard', network, String(d.id)],
+      queryFn: () => (d.id ? getLeaderboard({ puzzleId: d.id, network }) : Promise.resolve([])),
       enabled: Boolean(d.id),
-      refetchInterval: 20000,
+      refetchInterval: 15000,
       refetchOnWindowFocus: false,
     })),
   });
 
+  const leaders = useMemo(() => leaderboardsQueries.map((q) => (q.data || []) as LeaderboardEntry[]), [leaderboardsQueries]);
+
   const entryQueries = useQueries({
     queries: displayList.map((d) => ({
-      queryKey: ['entry', network, address, String(d.id ?? '')],
-      enabled: Boolean(address && d.id),
-      refetchInterval: 15000,
-      refetchOnWindowFocus: false,
+      queryKey: ['entry', network, String(d.id), address],
+      enabled: Boolean(d.id && address),
       queryFn: async () => {
-        if (!address || !d.id) return null;
+        if (!d.id || !address) return null;
         const { address: contractAddress, name: contractName } = getContractIds(network);
         const stxNetwork = getNetwork(network);
         const cv: any = await fetchCallReadOnlyFunction({
@@ -173,115 +135,297 @@ export default function Home() {
           senderAddress: address,
           network: stxNetwork,
         });
-        if (cv?.type !== ClarityType.ResponseOk) return null;
-        const opt = cv.value;
-        if (opt?.type === ClarityType.OptionalSome) {
-          const t = opt.value;
-          const st = BigInt(t.data['solve-time']?.value ?? 0);
-          const ts = BigInt(t.data['timestamp']?.value ?? 0);
-          const ic = t.data['is-correct'];
-          const isCorrect = ic?.type === ClarityType.BoolTrue;
-          return { solveTime: st, timestamp: ts, isCorrect } as { solveTime: bigint; timestamp: bigint; isCorrect: boolean };
-        }
-        return null;
+        return cv?.type === ClarityType.ResponseOk ? cv.value : null;
       },
     })),
   });
 
-  const leaders = leaderboardsQueries.map((q) => (q.data || []) as LeaderboardEntry[]);
+  const globalStatsQ = useQuery({
+    queryKey: ['global-stats', network],
+    queryFn: async () => {
+      const { address: contractAddress, name: contractName } = getContractIds(network);
+      const stxNetwork = getNetwork(network);
+      const cv: any = await fetchCallReadOnlyFunction({
+        contractAddress,
+        contractName,
+        functionName: 'get-puzzle-count',
+        functionArgs: [],
+        senderAddress: contractAddress,
+        network: stxNetwork,
+      });
+      const totalPuzzles = cv?.type === ClarityType.ResponseOk ? Number((cv as any).value?.value || 0) : 0;
+      
+      const totalStaked = pairs.reduce((sum, p) => sum + BigInt(p.info.prizePool || 0), 0n);
+      const totalPlayers = pairs.reduce((sum, p) => sum + Number(p.info.entryCount || 0), 0);
+      
+      return { totalPuzzles, totalStaked, totalPlayers };
+    },
+    refetchInterval: 30000,
+  });
 
-  const stats = useMemo(() => {
-    const totalActivePrize = infos.reduce((acc, p) => acc + Number(p.prizePool), 0);
-    const totalPlayers = infos.reduce((acc, p) => acc + Number(p.entryCount), 0);
-    const correct = leaders.flat().filter((x) => x.isCorrect).length;
-    return {
-      totalSolved: correct,
-      totalPrizeStx: microToStx(BigInt(totalActivePrize)),
-      activePlayers: totalPlayers,
-    };
-  }, [infos, leaders]);
-
-  const bgGrad = 'from-yellow-200 via-rose-200 to-blue-200 dark:from-zinc-900 dark:via-zinc-800 dark:to-zinc-900';
+  const stats = globalStatsQ.data || { totalPuzzles: 0, totalStaked: 0n, totalPlayers: 0 };
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${bgGrad} text-black dark:text-white relative overflow-hidden`}> 
-      <div className="absolute inset-0 pointer-events-none">
-        <Piece glyph="♔" x="5%" y="10%" />
-        <Piece glyph="♕" x="80%" y="15%" delay={1} />
-        <Piece glyph="♖" x="15%" y="70%" delay={2} />
-        <Piece glyph="♘" x="65%" y="65%" delay={3} />
-        <Piece glyph="♟" x="40%" y="30%" delay={1.5} />
+    <div className="min-h-screen relative overflow-hidden" style={{ background: colors.background }}>
+      {/* Grain texture overlay */}
+      <div className="grain-texture fixed inset-0 pointer-events-none" style={{ zIndex: 0 }} />
+      
+      {/* Floating geometric shapes in background */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+          style={{
+            position: 'absolute',
+            top: '10%',
+            left: '5%',
+            width: '200px',
+            height: '200px',
+            background: colors.accent2,
+            border: `6px solid ${colors.border}`,
+            opacity: 0.15,
+          }}
+        />
+        <motion.div
+          animate={{ rotate: -360 }}
+          transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}
+          style={{
+            position: 'absolute',
+            top: '60%',
+            right: '10%',
+            width: '150px',
+            height: '150px',
+            background: colors.accent1,
+            border: `6px solid ${colors.border}`,
+            opacity: 0.15,
+            transform: 'rotate(45deg)',
+          }}
+        />
+        <motion.div
+          animate={{ y: [-20, 20, -20] }}
+          transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+          style={{
+            position: 'absolute',
+            bottom: '15%',
+            left: '15%',
+            width: '100px',
+            height: '100px',
+            borderRadius: '50%',
+            background: colors.secondary,
+            border: `6px solid ${colors.border}`,
+            opacity: 0.15,
+          }}
+        />
       </div>
 
-      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-20">
-        <header className="flex items-center justify-between mb-8 sm:mb-12">
-          <div className={`${brutal} bg-white/80 dark:bg-zinc-900/60 backdrop-blur px-4 py-2 text-xl font-black tracking-tight`}>Stackmate</div>
-          <div className="flex items-center gap-2">
-            <Link to="/leaderboard" className={`${brutal} bg-white/80 hover:bg-white px-3 py-2 text-sm`}>Leaderboard</Link>
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
+        {/* Header */}
+        <header className="flex items-center justify-between mb-10 sm:mb-16">
+          <motion.div
+            initial={{ rotate: -2, x: -20, opacity: 0 }}
+            animate={{ rotate: 2, x: 0, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 300 }}
+            style={{
+              background: colors.primary,
+              border: `6px solid ${colors.border}`,
+              boxShadow: shadows.brutal,
+              padding: '16px 32px',
+            }}
+          >
+            <Link to="/" className="text-brutal" style={{ fontSize: '32px', color: colors.dark, textDecoration: 'none' }}>
+              STACKMATE
+            </Link>
+          </motion.div>
+
+          <div className="flex items-center gap-3">
+            <Link to="/leaderboard">
+              <NeoButton variant="secondary" size="sm">
+                <Trophy className="inline h-4 w-4 mr-2" />
+                Leaderboard
+              </NeoButton>
+            </Link>
             <NotificationBell />
             <WalletConnect />
           </div>
         </header>
 
-        <section className="mb-14 sm:mb-20">
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ type: 'spring', stiffness: 260, damping: 24 }}
-            className={`${brutal} bg-white/80 dark:bg-zinc-900/60 backdrop-blur p-6 sm:p-10 relative overflow-hidden`}
-          >
-            <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-              <div>
-                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black leading-[1.05]">
-                  Solve Chess Puzzles, Win STX
-                </h1>
-                <p className="mt-4 text-base sm:text-lg opacity-80">
-                  Fastest solver takes the entire prize pool
+        {/* Hero Section */}
+        <section className="mb-16 sm:mb-24">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <motion.div
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 25 }}
+            >
+              <motion.h1
+                initial={{ rotate: -1 }}
+                animate={{ rotate: 1 }}
+                transition={{ type: 'spring', stiffness: 300 }}
+                className="text-brutal"
+                style={{
+                  fontSize: 'clamp(48px, 8vw, 96px)',
+                  lineHeight: 0.95,
+                  color: colors.dark,
+                  marginBottom: '24px',
+                  textShadow: `6px 6px 0px ${colors.primary}`,
+                }}
+              >
+                SOLVE
+                <br />
+                CHESS
+                <br />
+                <span style={{ color: colors.secondary }}>WIN STX</span>
+              </motion.h1>
+
+              <motion.div
+                style={{
+                  background: colors.accent1,
+                  border: `4px solid ${colors.border}`,
+                  boxShadow: shadows.brutalSmall,
+                  padding: '16px 24px',
+                  marginBottom: '32px',
+                  transform: 'rotate(-1deg)',
+                }}
+              >
+                <p style={{ fontWeight: 900, fontSize: '20px', color: colors.dark }}>
+                  FASTEST SOLVER TAKES THE ENTIRE PRIZE POOL
                 </p>
-                <div className="mt-6 flex flex-wrap gap-3">
-                  <a href="#difficulties" className={`px-5 py-3 bg-yellow-300 hover:bg-yellow-400 ${brutal} inline-flex items-center gap-2`}>
-                    <Zap className="h-4 w-4" /> Play Now
-                  </a>
-                  <a href="#how" className={`px-5 py-3 bg-blue-300 hover:bg-blue-400 ${brutal} inline-flex items-center gap-2`}>
-                    <Target className="h-4 w-4" /> How it works
-                  </a>
-                </div>
+              </motion.div>
+
+              <div className="flex flex-wrap gap-4">
+                <a href="#difficulties">
+                  <NeoButton variant="primary" size="xl">
+                    <Zap className="inline h-6 w-6 mr-3" />
+                    PLAY NOW
+                  </NeoButton>
+                </a>
+                <a href="#how">
+                  <NeoButton variant="accent" size="lg">
+                    <Target className="inline h-5 w-5 mr-2" />
+                    HOW IT WORKS
+                  </NeoButton>
+                </a>
               </div>
-              <div className="relative min-h-[240px] lg:min-h-[320px]">
-                <motion.div
-                  initial={{ rotate: -2, scale: 0.95 }}
-                  animate={{ rotate: 0, scale: 1 }}
-                  transition={{ type: 'spring', stiffness: 180, damping: 16 }}
-                  className={`${brutal} bg-gradient-to-br from-white/80 to-yellow-100/70 dark:from-zinc-800/80 dark:to-zinc-700/70 backdrop-blur p-6`}
-                >
-                  <div className="grid grid-cols-3 gap-2 text-4xl sm:text-5xl lg:text-6xl">
-                    <div className="text-center">♜</div>
-                    <div className="text-center">♞</div>
-                    <div className="text-center">♝</div>
-                    <div className="text-center">♛</div>
-                    <div className="text-center">♚</div>
-                    <div className="text-center">♟</div>
-                  </div>
-                </motion.div>
-                <motion.div
-                  className="absolute -inset-3 -z-10"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.8 }}
-                  style={{ background: 'repeating-linear-gradient(45deg, rgba(0,0,0,0.06) 0, rgba(0,0,0,0.06) 10px, transparent 10px, transparent 20px)' }}
-                />
+            </motion.div>
+
+            {/* Chess pieces visual */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8, rotate: -10 }}
+              animate={{ opacity: 1, scale: 1, rotate: 3 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+              style={{
+                background: colors.primary,
+                border: `8px solid ${colors.border}`,
+                boxShadow: shadows.brutalLarge,
+                padding: '48px',
+                position: 'relative',
+              }}
+              className="stripes-pattern"
+            >
+              <div className="grid grid-cols-3 gap-6 text-7xl sm:text-8xl">
+                {['♜', '♞', '♝', '♛', '♚', '♟'].map((piece, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ scale: 0, rotate: -180 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ delay: i * 0.1, type: 'spring', stiffness: 200 }}
+                    className="text-center"
+                    style={{ color: colors.dark }}
+                  >
+                    {piece}
+                  </motion.div>
+                ))}
               </div>
-            </div>
+            </motion.div>
+          </div>
+
+          {/* Global Stats */}
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, type: 'spring', stiffness: 200 }}
+            className="grid grid-cols-3 gap-4 mt-12"
+          >
+            <motion.div
+              whileHover={{ y: -4 }}
+              style={{
+                background: colors.beginner,
+                border: `5px solid ${colors.border}`,
+                boxShadow: shadows.brutal,
+                padding: '24px',
+                transform: `rotate(${getRotation(0)}deg)`,
+              }}
+            >
+              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '14px', fontWeight: 700, marginBottom: '8px' }}>
+                TOTAL PUZZLES
+              </div>
+              <div className="text-brutal" style={{ fontSize: '48px', color: colors.dark }}>
+                {stats.totalPuzzles}
+              </div>
+            </motion.div>
+
+            <motion.div
+              whileHover={{ y: -4 }}
+              style={{
+                background: colors.intermediate,
+                border: `5px solid ${colors.border}`,
+                boxShadow: shadows.brutal,
+                padding: '24px',
+                transform: `rotate(${getRotation(1)}deg)`,
+              }}
+            >
+              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '14px', fontWeight: 700, marginBottom: '8px' }}>
+                TOTAL PLAYERS
+              </div>
+              <div className="text-brutal" style={{ fontSize: '48px', color: colors.dark }}>
+                {stats.totalPlayers}
+              </div>
+            </motion.div>
+
+            <motion.div
+              whileHover={{ y: -4 }}
+              style={{
+                background: colors.expert,
+                border: `5px solid ${colors.border}`,
+                boxShadow: shadows.brutal,
+                padding: '24px',
+                transform: `rotate(${getRotation(2)}deg)`,
+              }}
+            >
+              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '14px', fontWeight: 700, marginBottom: '8px', color: colors.white }}>
+                TOTAL STAKED
+              </div>
+              <div className="text-brutal" style={{ fontSize: '48px', color: colors.white }}>
+                {microToStx(stats.totalStaked)}
+                <span style={{ fontSize: '24px' }}> STX</span>
+              </div>
+            </motion.div>
           </motion.div>
         </section>
 
-        <section id="difficulties" className="mb-16 sm:mb-20">
-          <div className="flex items-center gap-2 mb-4">
-            <Sparkles className="h-5 w-5" />
-            <h2 className="text-2xl sm:text-3xl font-black">Choose Your Challenge</h2>
-          </div>
-          <div className="grid md:grid-cols-3 gap-6">
+        {/* Puzzle Cards Section */}
+        <section id="difficulties" className="mb-16 sm:mb-24">
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            style={{
+              background: colors.dark,
+              border: `6px solid ${colors.border}`,
+              boxShadow: shadows.brutal,
+              padding: '16px 32px',
+              display: 'inline-block',
+              marginBottom: '32px',
+              transform: 'rotate(-1deg)',
+            }}
+          >
+            <h2 className="text-brutal" style={{ fontSize: '40px', color: colors.primary }}>
+              <Sparkles className="inline h-8 w-8 mr-3" />
+              CHOOSE YOUR CHALLENGE
+            </h2>
+          </motion.div>
+
+          <div className="grid md:grid-cols-3 gap-8">
             {(activeLoading || infoQueries.some(q => q.isLoading)) && (
               <>
                 <PuzzleCardSkeleton />
@@ -331,87 +475,95 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="how" className="mb-16 sm:mb-20">
-          <div className="flex items-center gap-2 mb-4">
-            <Target className="h-5 w-5" />
-            <h2 className="text-2xl sm:text-3xl font-black">How It Works</h2>
-          </div>
-          <div className="grid md:grid-cols-3 gap-6">
-            <Card>
-              <div className="flex items-center gap-3">
-                <Zap className="h-5 w-5" />
-                <div className="text-lg font-black">Enter</div>
-              </div>
-              <p className="text-sm mt-2 opacity-80">Stake the entry fee to join a live puzzle. Every entry increases the prize pool.</p>
-            </Card>
-            <Card>
-              <div className="flex items-center gap-3">
-                <Clock className="h-5 w-5" />
-                <div className="text-lg font-black">Solve</div>
-              </div>
-              <p className="text-sm mt-2 opacity-80">Recreate the exact move sequence faster than everyone else. Hints add time penalties.</p>
-            </Card>
-            <Card>
-              <div className="flex items-center gap-3">
-                <Crown className="h-5 w-5" />
-                <div className="text-lg font-black">Win</div>
-              </div>
-              <p className="text-sm mt-2 opacity-80">After the deadline, the fastest correct solver takes it all. Funds settle on-chain.</p>
-            </Card>
-          </div>
-        </section>
+        {/* How It Works Section */}
+        <section id="how" className="mb-16">
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            style={{
+              background: colors.accent3,
+              border: `6px solid ${colors.border}`,
+              boxShadow: shadows.brutal,
+              padding: '16px 32px',
+              display: 'inline-block',
+              marginBottom: '32px',
+              transform: 'rotate(1deg)',
+            }}
+          >
+            <h2 className="text-brutal" style={{ fontSize: '40px', color: colors.white }}>
+              <Target className="inline h-8 w-8 mr-3" />
+              HOW IT WORKS
+            </h2>
+          </motion.div>
 
-        <section className="mb-20">
-          <div className="flex items-center gap-2 mb-4">
-            <Trophy className="h-5 w-5" />
-            <h2 className="text-2xl sm:text-3xl font-black">Stats</h2>
-          </div>
-          <div className="grid md:grid-cols-3 gap-4">
-            <Stat icon={<Clock className="h-4 w-4" />} label="Total Puzzles Solved" value={String(stats.totalSolved)} accent="bg-yellow-300" />
-            <Stat icon={<Coins className="h-4 w-4" />} label="Total STX in Pools" value={`${stats.totalPrizeStx} STX`} accent="bg-blue-300" />
-            <Stat icon={<Users className="h-4 w-4" />} label="Active Players" value={String(stats.activePlayers)} accent="bg-pink-300" />
-          </div>
-        </section>
-
-        <section className="mb-8">
-          <div className={`${brutal} bg-white/80 dark:bg-zinc-900/60 backdrop-blur p-3 overflow-hidden`}>
-            <div className="flex items-center gap-2 mb-2">
-              <Trophy className="h-4 w-4" />
-              <div className="text-xs font-black uppercase tracking-wider">Recent Winners</div>
-            </div>
-            <div className="relative h-8">
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              {
+                icon: <Zap className="h-12 w-12" />,
+                title: 'ENTER',
+                desc: 'Stake the entry fee to join a live puzzle. Every entry increases the prize pool.',
+                color: colors.primary,
+                rotate: -2,
+              },
+              {
+                icon: <Clock className="h-12 w-12" />,
+                title: 'SOLVE',
+                desc: 'Race against time and other players to find the winning chess move.',
+                color: colors.accent1,
+                rotate: 1,
+              },
+              {
+                icon: <Trophy className="h-12 w-12" />,
+                title: 'WIN',
+                desc: 'Fastest correct solution wins 95% of the prize pool in STX.',
+                color: colors.beginner,
+                rotate: -1,
+              },
+            ].map((item, i) => (
               <motion.div
-                className="absolute whitespace-nowrap"
-                initial={{ x: 0 }}
-                animate={{ x: ['0%', '-100%'] }}
-                transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+                key={i}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                whileHover={{ y: -8, rotate: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1, type: 'spring', stiffness: 200 }}
+                style={{
+                  background: item.color,
+                  border: `6px solid ${colors.border}`,
+                  boxShadow: shadows.brutal,
+                  padding: '32px',
+                  transform: `rotate(${item.rotate}deg)`,
+                }}
               >
-                {(leaders.flat().slice(0, 12)).map((w, i) => (
-                  <span key={i} className="inline-flex items-center gap-2 mr-8 text-sm">
-                    <Crown className="h-4 w-4" />
-                    <span className="font-black">{w.player?.slice(0, 6)}…{w.player?.slice(-4)}</span>
-                    <span className="opacity-70">{formatTimeSeconds(w.solveTime)}s</span>
-                  </span>
-                ))}
+                <div style={{ color: colors.dark, marginBottom: '16px' }}>{item.icon}</div>
+                <h3 className="text-brutal" style={{ fontSize: '28px', marginBottom: '12px', color: colors.dark }}>
+                  {item.title}
+                </h3>
+                <p style={{ fontWeight: 700, fontSize: '16px', lineHeight: 1.5, color: colors.dark }}>
+                  {item.desc}
+                </p>
               </motion.div>
-            </div>
+            ))}
           </div>
         </section>
-
-        {enterData && (
-          <EnterPuzzleModal
-            open={enterOpen}
-            onClose={() => { setEnterOpen(false); setEnterData(null); }}
-            puzzleId={enterData.puzzleId}
-            difficulty={enterData.difficulty}
-            entryFeeMicro={enterData.entryFeeMicro}
-            prizePoolMicro={enterData.prizePoolMicro}
-            alreadyEntered={enterData.alreadyEntered}
-          />
-        )}
-
-        <footer className="pb-8 text-xs opacity-70">Built for Stacks • Neo‑Brutalist UI • Framer Motion</footer>
       </div>
+
+      {/* Enter Modal */}
+      {enterOpen && enterData && (
+        <EnterPuzzleModal
+          puzzleId={enterData.puzzleId}
+          difficulty={enterData.difficulty}
+          entryFeeMicro={enterData.entryFeeMicro}
+          prizePoolMicro={enterData.prizePoolMicro}
+          alreadyEntered={enterData.alreadyEntered}
+          isOpen={enterOpen}
+          onClose={() => {
+            setEnterOpen(false);
+            setEnterData(null);
+          }}
+        />
+      )}
     </div>
   );
 }
