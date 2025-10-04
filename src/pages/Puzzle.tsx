@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import WalletConnect from '../components/WalletConnect';
+import NotificationBell from '../components/NotificationBell';
 import useWallet from '../hooks/useWallet';
 import ChessPuzzleSolver from '../components/ChessPuzzleSolver';
 import { getPuzzlesByDifficulty, type Puzzle } from '../lib/puzzles-db';
@@ -39,7 +40,10 @@ export default function PuzzlePage() {
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         <header className="flex items-center justify-between mb-6">
           <Link to="/" className={`${brutal} bg-white/80 dark:bg-zinc-900/60 backdrop-blur px-4 py-2 text-xl font-black tracking-tight`}>Stackmate</Link>
-          <WalletConnect />
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+            <WalletConnect />
+          </div>
         </header>
 
         <motion.div

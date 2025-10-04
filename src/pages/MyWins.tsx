@@ -7,6 +7,7 @@ import { fetchCallReadOnlyFunction, uintCV, standardPrincipalCV, ClarityType } f
 import { getApiBaseUrl, microToStx, type NetworkName } from '../lib/stacks';
 import { getPuzzleInfo, type PuzzleInfo } from '../lib/contracts';
 import WalletConnect from '../components/WalletConnect';
+import NotificationBell from '../components/NotificationBell';
 import ClaimPrizeModal from '../components/ClaimPrizeModal';
 import { useUserStats } from '../hooks/useBlockchain';
 
@@ -139,7 +140,10 @@ export default function MyWins() {
             <div className="text-2xl sm:text-3xl font-black">My Wins</div>
             <div className="text-xs opacity-70">Track and claim your prizes</div>
           </div>
-          <WalletConnect />
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+            <WalletConnect />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
