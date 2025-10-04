@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, Coins, Loader2, Shield, Wallet, X } from 'lucide-react';
-import { microToStx, type NetworkName } from '../lib/stacks';
+import { AlertTriangle, Coins, Loader2, Shield, Wallet, X, Zap } from 'lucide-react';
+import { microToStx } from '../lib/stacks';
 import useWallet from '../hooks/useWallet';
 import { useEnterPuzzle } from '../hooks/useContract';
 import { useNavigate } from 'react-router-dom';
+import { colors, shadows, getDifficultyColor } from '../styles/neo-brutal-theme';
+import NeoButton from './neo/NeoButton';
 
 export type Difficulty = 'beginner' | 'intermediate' | 'expert';
 
 export interface EnterPuzzleModalProps {
-  open: boolean;
+  isOpen: boolean;
   onClose: () => void;
   puzzleId: number | bigint;
   difficulty: Difficulty;
@@ -17,8 +19,6 @@ export interface EnterPuzzleModalProps {
   prizePoolMicro: bigint | number | string; 
   alreadyEntered?: boolean;
 }
-
-const brutal = 'rounded-none border-[3px] border-black shadow-[8px_8px_0_#000]';
 
 async function toastMsg(message: string, type: 'success' | 'error' | 'info' = 'info') {
   try {
@@ -40,9 +40,9 @@ async function toastMsg(message: string, type: 'success' | 'error' | 'info' = 'i
   }
 }
 
-export default function EnterPuzzleModal({ open, onClose, puzzleId, difficulty, entryFeeMicro, prizePoolMicro, alreadyEntered = false }: EnterPuzzleModalProps) {
+export default function EnterPuzzleModal({ isOpen, onClose, puzzleId, difficulty, entryFeeMicro, prizePoolMicro, alreadyEntered = false }: EnterPuzzleModalProps) {
   const navigate = useNavigate();
-  const { network, balance, address, isConnecting, refresh } = useWallet();
+  const { network, balance, address } = useWallet();
   const enter = useEnterPuzzle();
 
   const [agree, setAgree] = useState(false);
@@ -51,13 +51,13 @@ export default function EnterPuzzleModal({ open, onClose, puzzleId, difficulty, 
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!open) {
+    if (!isOpen) {
       setAgree(false);
       setStatus('idle');
       setTxId(null);
       setError(null);
     }
-  }, [open]);
+  }, [isOpen]);
 
   const entryStx = useMemo(() => microToStx(entryFeeMicro), [entryFeeMicro]);
   const prizeStx = useMemo(() => microToStx(prizePoolMicro), [prizePoolMicro]);
@@ -70,7 +70,7 @@ export default function EnterPuzzleModal({ open, onClose, puzzleId, difficulty, 
   })();
   const insufficient = yourMicro < needMicro;
 
-  const canConfirm = open && !alreadyEntered && !insufficient && agree && status !== 'requesting_signature' && status !== 'pending' && status !== 'submitted';
+  const canConfirm = isOpen && !alreadyEntered && !insufficient && agree && status !== 'requesting_signature' && status !== 'pending' && status !== 'submitted';
 
   async function handleConfirm() {
     setError(null);
@@ -97,7 +97,6 @@ export default function EnterPuzzleModal({ open, onClose, puzzleId, difficulty, 
         return;
       }
       setStatus('success');
-      // Redirect to solve page after a short delay
       setTimeout(() => {
         navigate(`/solve/${difficulty}/${String(puzzleId)}`);
         onClose?.();
@@ -108,99 +107,316 @@ export default function EnterPuzzleModal({ open, onClose, puzzleId, difficulty, 
     }
   }
 
+  const diffColor = getDifficultyColor(difficulty);
+
   return (
     <AnimatePresence>
-      {open && (
-        <motion.div className="fixed inset-0 z-50 flex items-center justify-center"
+      {isOpen && (
+        <motion.div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
-          <div className="absolute inset-0 bg-black/40" onClick={() => (status === 'idle' ? onClose() : null)} />
+          <div 
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm" 
+            onClick={() => (status === 'idle' ? onClose() : null)} 
+          />
 
           <motion.div
-            initial={{ scale: 0.9, rotate: -1, y: 8, opacity: 0 }}
-            animate={{ scale: 1, rotate: 0, y: 0, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-            className={`relative max-w-lg w-[96%] sm:w-[520px] ${brutal} bg-white/80 dark:bg-zinc-900/70 backdrop-blur p-5`}
+            initial={{ scale: 0.8, rotate: -5, y: 50 }}
+            animate={{ scale: 1, rotate: 2, y: 0 }}
+            exit={{ scale: 0.8, rotate: 5, y: 50 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+            style={{
+              position: 'relative',
+              maxWidth: '600px',
+              width: '100%',
+              background: diffColor,
+              border: `8px solid ${colors.border}`,
+              boxShadow: shadows.brutalLarge,
+              padding: '32px',
+            }}
           >
-            <div className="flex items-center justify-between mb-3">
-              <div className="text-xl font-black">Enter Puzzle</div>
-              <button className={`${brutal} bg-zinc-200 px-2 py-1`} onClick={() => (status === 'idle' ? onClose() : null)}><X className="h-4 w-4"/></button>
-            </div>
+            {/* Close button */}
+            <button
+              onClick={() => (status === 'idle' ? onClose() : null)}
+              style={{
+                position: 'absolute',
+                top: '16px',
+                right: '16px',
+                background: colors.dark,
+                color: colors.white,
+                border: `4px solid ${colors.border}`,
+                padding: '8px',
+                cursor: status === 'idle' ? 'pointer' : 'not-allowed',
+                opacity: status === 'idle' ? 1 : 0.5,
+              }}
+            >
+              <X size={24} strokeWidth={3} />
+            </button>
 
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className={`${brutal} bg-yellow-200 p-3`}>
-                <div className="text-[10px] uppercase font-black">Difficulty</div>
-                <div className="text-lg font-black">{difficulty}</div>
-              </div>
-              <div className={`${brutal} bg-blue-200 p-3`}>
-                <div className="text-[10px] uppercase font-black">Entry Fee</div>
-                <div className="text-lg font-black">{entryStx} STX</div>
-              </div>
-              <div className={`${brutal} bg-green-200 p-3`}>
-                <div className="text-[10px] uppercase font-black">Current Prize</div>
-                <div className="text-lg font-black">{prizeStx} STX</div>
-              </div>
-              <div className={`${brutal} bg-white p-3`}>
-                <div className="flex items-center gap-2 text-[10px] uppercase font-black"><Wallet className="h-3 w-3"/> Your Balance</div>
-                <div className="text-lg font-black">{yourStx} STX</div>
-              </div>
-            </div>
+            {/* Title */}
+            <h2 style={{
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontWeight: 900,
+              fontSize: '40px',
+              textTransform: 'uppercase',
+              letterSpacing: '-0.02em',
+              marginBottom: '24px',
+              color: colors.dark,
+            }}>
+              ENTER PUZZLE
+            </h2>
 
-            {insufficient && (
-              <div className={`mt-3 ${brutal} bg-red-200 p-3 text-sm flex items-start gap-2`}>
-                <AlertTriangle className="h-4 w-4 mt-[2px]"/>
-                <div>
-                  <div className="font-black">Low balance</div>
-                  <div className="opacity-80 text-xs">You don’t have enough STX to cover the entry fee.</div>
+            {/* Stats Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
+              <div style={{
+                background: colors.white,
+                border: `4px solid ${colors.border}`,
+                boxShadow: shadows.brutalSmall,
+                padding: '16px',
+              }}>
+                <div style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  marginBottom: '8px',
+                }}>
+                  DIFFICULTY
+                </div>
+                <div style={{
+                  fontFamily: "'Space Grotesk', sans-serif",
+                  fontWeight: 900,
+                  fontSize: '24px',
+                  textTransform: 'uppercase',
+                }}>
+                  {difficulty}
                 </div>
               </div>
+
+              <div style={{
+                background: colors.primary,
+                border: `4px solid ${colors.border}`,
+                boxShadow: shadows.brutalSmall,
+                padding: '16px',
+              }}>
+                <div style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  marginBottom: '8px',
+                }}>
+                  ENTRY FEE
+                </div>
+                <div style={{
+                  fontFamily: "'Space Grotesk', sans-serif",
+                  fontWeight: 900,
+                  fontSize: '24px',
+                }}>
+                  {entryStx} STX
+                </div>
+              </div>
+
+              <div style={{
+                background: colors.accent2,
+                border: `4px solid ${colors.border}`,
+                boxShadow: shadows.brutalSmall,
+                padding: '16px',
+              }}>
+                <div style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  marginBottom: '8px',
+                }}>
+                  CURRENT PRIZE
+                </div>
+                <div style={{
+                  fontFamily: "'Space Grotesk', sans-serif",
+                  fontWeight: 900,
+                  fontSize: '24px',
+                }}>
+                  {prizeStx} STX
+                </div>
+              </div>
+
+              <div style={{
+                background: insufficient ? colors.error : colors.white,
+                border: `4px solid ${colors.border}`,
+                boxShadow: shadows.brutalSmall,
+                padding: '16px',
+              }}>
+                <div style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  marginBottom: '8px',
+                  color: insufficient ? colors.white : colors.dark,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}>
+                  <Wallet className="h-3 w-3" /> YOUR BALANCE
+                </div>
+                <div style={{
+                  fontFamily: "'Space Grotesk', sans-serif",
+                  fontWeight: 900,
+                  fontSize: '24px',
+                  color: insufficient ? colors.white : colors.dark,
+                }}>
+                  {yourStx} STX
+                </div>
+              </div>
+            </div>
+
+            {/* Warning messages */}
+            {insufficient && (
+              <motion.div
+                initial={{ opacity: 0, x: [-10, 10, -10, 10, 0] }}
+                animate={{ opacity: 1, x: 0 }}
+                style={{
+                  background: colors.error,
+                  border: `4px solid ${colors.border}`,
+                  boxShadow: shadows.brutalSmall,
+                  padding: '16px',
+                  marginBottom: '16px',
+                  display: 'flex',
+                  alignItems: 'start',
+                  gap: '12px',
+                }}
+              >
+                <AlertTriangle className="h-5 w-5 mt-1" style={{ color: colors.white }} />
+                <div>
+                  <div style={{ fontWeight: 900, fontSize: '16px', color: colors.white }}>LOW BALANCE</div>
+                  <div style={{ fontSize: '14px', opacity: 0.9, color: colors.white }}>
+                    You don't have enough STX to cover the entry fee.
+                  </div>
+                </div>
+              </motion.div>
             )}
 
             {alreadyEntered && (
-              <div className={`mt-3 ${brutal} bg-black text-white p-3 text-sm`}>You have already entered this puzzle.</div>
+              <div style={{
+                background: colors.dark,
+                color: colors.white,
+                border: `4px solid ${colors.border}`,
+                boxShadow: shadows.brutalSmall,
+                padding: '16px',
+                marginBottom: '16px',
+                fontWeight: 900,
+                fontSize: '14px',
+                textTransform: 'uppercase',
+              }}>
+                YOU HAVE ALREADY ENTERED THIS PUZZLE
+              </div>
             )}
 
-            <div className={`mt-3 ${brutal} bg-white p-3 text-sm flex items-start gap-2`}>
-              <Shield className="h-4 w-4 mt-[2px]"/>
-              <label className="flex-1 cursor-pointer select-none">
-                <input type="checkbox" className="mr-2 align-middle" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
-                <span>I understand winner takes all</span>
+            {/* Terms checkbox */}
+            <div style={{
+              background: colors.white,
+              border: `4px solid ${colors.border}`,
+              boxShadow: shadows.brutalSmall,
+              padding: '16px',
+              marginBottom: '16px',
+              display: 'flex',
+              alignItems: 'start',
+              gap: '12px',
+            }}>
+              <Shield className="h-5 w-5 mt-1" />
+              <label style={{ flex: 1, cursor: 'pointer', userSelect: 'none', fontWeight: 700, fontSize: '14px' }}>
+                <input
+                  type="checkbox"
+                  checked={agree}
+                  onChange={(e) => setAgree(e.target.checked)}
+                  style={{ marginRight: '12px', transform: 'scale(1.2)' }}
+                />
+                I understand winner takes all
               </label>
             </div>
 
+            {/* Error message */}
             {error && (
-              <div className={`mt-3 ${brutal} bg-red-200 p-3 text-sm`}>{error}</div>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                style={{
+                  background: colors.error,
+                  color: colors.white,
+                  border: `4px solid ${colors.border}`,
+                  boxShadow: shadows.brutalSmall,
+                  padding: '16px',
+                  marginBottom: '16px',
+                  fontWeight: 900,
+                }}
+              >
+                {error}
+              </motion.div>
             )}
 
+            {/* Status message */}
             {status !== 'idle' && (
-              <div className={`mt-3 ${brutal} ${status === 'success' ? 'bg-green-200' : status === 'failed' ? 'bg-red-200' : 'bg-blue-200'} p-3 text-sm`}> 
-                {status === 'requesting_signature' && 'Waiting for wallet signature…'}
-                {status === 'submitted' && 'Transaction submitted. Waiting for confirmation…'}
-                {status === 'pending' && 'Transaction pending…'}
-                {status === 'success' && 'Entry confirmed! Time to solve 🎯'}
-                {status === 'failed' && 'Entry failed. Please try again.'}
+              <div style={{
+                background: status === 'success' ? colors.success : status === 'failed' ? colors.error : colors.accent1,
+                color: status === 'success' || status === 'failed' ? colors.white : colors.dark,
+                border: `4px solid ${colors.border}`,
+                boxShadow: shadows.brutalSmall,
+                padding: '16px',
+                marginBottom: '16px',
+                fontWeight: 900,
+              }}>
+                {status === 'requesting_signature' && 'WAITING FOR WALLET SIGNATURE…'}
+                {status === 'submitted' && 'TRANSACTION SUBMITTED. WAITING FOR CONFIRMATION…'}
+                {status === 'pending' && 'TRANSACTION PENDING…'}
+                {status === 'success' && 'ENTRY CONFIRMED! TIME TO SOLVE 🎯'}
+                {status === 'failed' && 'ENTRY FAILED. PLEASE TRY AGAIN.'}
                 {txId && (
-                  <div className="text-xs mt-1 opacity-70 break-all">txId: {txId}</div>
+                  <div style={{ fontSize: '10px', marginTop: '8px', opacity: 0.8, wordBreak: 'break-all' }}>
+                    txId: {txId}
+                  </div>
                 )}
               </div>
             )}
 
-            <div className="mt-4 flex justify-end gap-2">
-              <button className={`${brutal} bg-zinc-200 hover:bg-zinc-300 px-4 py-2`} onClick={() => (status === 'idle' ? onClose() : null)} disabled={status !== 'idle'}>Cancel</button>
-              <button
-                className={`${brutal} px-4 py-2 ${canConfirm ? 'bg-black text-white hover:bg-zinc-800' : 'bg-zinc-400 text-white cursor-not-allowed'}`}
+            {/* Action buttons */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <NeoButton
+                variant="secondary"
+                size="lg"
+                onClick={() => (status === 'idle' ? onClose() : null)}
+                disabled={status !== 'idle'}
+              >
+                CANCEL
+              </NeoButton>
+
+              <NeoButton
+                variant={canConfirm ? "primary" : "secondary"}
+                size="lg"
                 onClick={handleConfirm}
                 disabled={!canConfirm}
               >
                 {status === 'requesting_signature' || status === 'submitted' || status === 'pending' ? (
-                  <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin"/> Processing…</span>
+                  <>
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                      style={{ display: 'inline-block' }}
+                    >
+                      <Loader2 className="inline h-5 w-5 mr-2" />
+                    </motion.div>
+                    PROCESSING…
+                  </>
                 ) : (
-                  <span className="inline-flex items-center gap-2"><Coins className="h-4 w-4"/> Confirm Entry</span>
+                  <>
+                    <Zap className="inline h-5 w-5 mr-2" />
+                    CONFIRM ENTRY
+                  </>
                 )}
-              </button>
+              </NeoButton>
             </div>
           </motion.div>
         </motion.div>
