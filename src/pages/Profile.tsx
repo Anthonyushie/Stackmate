@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useQueries, useQuery } from '@tanstack/react-query'
-import { motion } from 'framer-motion'
 import { Calendar, CheckCircle2, Clock, Coins, Flame, Hourglass, Medal, Percent, Star, Trophy, Zap } from 'lucide-react'
 import WalletConnect from '../components/WalletConnect'
 import useWallet from '../hooks/useWallet'
 import { fetchCallReadOnlyFunction, standardPrincipalCV, uintCV, ClarityType } from '@stacks/transactions'
-import { getApiBaseUrl, microToStx, type NetworkName, getNetwork } from '../lib/stacks'
+import { microToStx, type NetworkName, getNetwork } from '../lib/stacks'
 import { getPuzzleInfo, type PuzzleInfo } from '../lib/contracts'
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Area, AreaChart } from 'recharts'
+import { ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Area, AreaChart } from 'recharts'
 
 const brutal = 'rounded-none border-[3px] border-black shadow-[8px_8px_0_#000]'
 
