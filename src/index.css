@@ -1,7 +1,63 @@
 /* src/index.css */
+
+/* Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@900&family=Inter:wght@700;900&family=JetBrains+Mono:wght@700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Neo-Brutal Global Styles */
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    @apply font-body;
+    background: #F5F5F0;
+    color: #000000;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: -0.02em;
+  }
+
+  /* Disable smooth scrolling for brutal feel */
+  * {
+    scroll-behavior: auto !important;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 16px;
+    height: 16px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #F5F5F0;
+    border: 3px solid #000000;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #FFE500;
+    border: 3px solid #000000;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #FF006E;
+  }
+
+  /* Selection */
+  ::selection {
+    background: #FFE500;
+    color: #000000;
+  }
+}
 
 /* Shimmer skeleton */
 @keyframes shimmer {
@@ -18,5 +74,58 @@
 
 :root.dark .skeleton, .dark .skeleton {
   background: linear-gradient(90deg, rgba(255,255,255,0.08) 25%, rgba(255,255,255,0.16) 37%, rgba(255,255,255,0.08) 63%);
+}
+
+/* Neo-Brutal Utility Classes */
+@layer utilities {
+  .brutal-shadow {
+    box-shadow: 8px 8px 0px #000000;
+  }
+
+  .brutal-shadow-sm {
+    box-shadow: 4px 4px 0px #000000;
+  }
+
+  .brutal-shadow-lg {
+    box-shadow: 12px 12px 0px #000000;
+  }
+
+  .brutal-shadow-xl {
+    box-shadow: 16px 16px 0px #000000;
+  }
+
+  .brutal-border {
+    border: 4px solid #000000;
+  }
+
+  .brutal-border-thick {
+    border: 6px solid #000000;
+  }
+
+  .grain-texture::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='5' numOctaves='1' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .stripes-pattern {
+    background-image: repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 10px,
+      rgba(0, 0, 0, 0.1) 10px,
+      rgba(0, 0, 0, 0.1) 20px
+    );
+  }
+
+  .text-brutal {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: -0.02em;
+  }
 }
 
