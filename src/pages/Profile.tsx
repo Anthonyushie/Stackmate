@@ -270,6 +270,7 @@ export default function Profile() {
           <ProfileStatsSkeleton />
         )}
         {!loadingAny && (
+        <>
         <section className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className={`${brutal} bg-white/85 p-4`}>
             <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider"><Star className="h-4 w-4"/> Total Entered</div>
@@ -382,6 +383,8 @@ export default function Profile() {
             </div>
           </div>
         </section>
+        </>
+        )}
       </div>
     </div>
   )
