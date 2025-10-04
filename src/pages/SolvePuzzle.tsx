@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Chess, type Move, type Square } from 'chess.js';
 import { Chessboard } from 'react-chessboard';
-import { Trophy, Clock, Users, Lightbulb, RotateCcw, FlagTriangleRight, X } from 'lucide-react';
+import { Trophy, Users, Lightbulb, RotateCcw, FlagTriangleRight, X, PartyPopper, Flame } from 'lucide-react';
 import useWallet from '../hooks/useWallet';
 import { getPuzzlesByDifficulty, type Puzzle, hashSolution } from '../lib/puzzles-db';
 import { getPuzzleInfo, getLeaderboard, type LeaderboardEntry } from '../lib/contracts';
@@ -13,8 +13,12 @@ import { useSubmitSolution } from '../hooks/useContract';
 import ShareButton from '../components/ShareButton';
 import { formatSolveTime } from '../lib/time-utils';
 import ChessBoardSkeleton from '../components/skeletons/ChessBoardSkeleton';
-
-const brutal = 'rounded-none border-[3px] border-black shadow-[8px_8px_0_#000]';
+import LiveLeaderboard from '../components/LiveLeaderboard';
+import { colors, shadows, getDifficultyColor } from '../styles/neo-brutal-theme';
+import NeoButton from '../components/neo/NeoButton';
+import NeoBadge from '../components/neo/NeoBadge';
+import NeoCard from '../components/neo/NeoCard';
+import Header from '../components/Header';
 
 function pad(n: number) { return n < 10 ? `0${n}` : `${n}`; }
 
@@ -23,6 +27,11 @@ function formatTime(totalSeconds: number) {
   const s = totalSeconds % 60;
   return `${pad(m)}:${pad(s)}`;
 }
+
+const unicode: Record<string, string> = {
+  wK: '♔', wQ: '♕', wR: '♖', wB: '♗', wN: '♘', wP: '♙',
+  bK: '♚', bQ: '♛', bR: '♜', bB: '♝', bN: '♞', bP: '♟',
+};
 
 export default function SolvePuzzle() {
   const { difficulty = 'beginner', puzzleId = '' } = useParams();
@@ -42,11 +51,9 @@ export default function SolvePuzzle() {
   const [txId, setTxId] = useState<string | null>(null);
   const submittedRef = useRef(false);
 
-  // Timer
   const [elapsed, setElapsed] = useState(0);
   const [penalties, setPenalties] = useState(0);
 
-  // Chess state
   const [game, setGame] = useState<Chess | null>(null);
   const [boardFen, setBoardFen] = useState('');
   const [index, setIndex] = useState(0);
@@ -58,7 +65,6 @@ export default function SolvePuzzle() {
   const [boardSize, setBoardSize] = useState(720);
   const boardWrapRef = useRef<HTMLDivElement>(null);
 
-  // Derived puzzle from local DB by difficulty and numericId index
   const localPuzzle: Puzzle | null = useMemo(() => {
     const list = getPuzzlesByDifficulty(difficulty as any);
     if (!list || !list.length) return null;
@@ -67,7 +73,6 @@ export default function SolvePuzzle() {
     return list[idx];
   }, [difficulty, numericId]);
 
-  // Fetch on-chain puzzle info and ensure user entered
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -78,11 +83,9 @@ export default function SolvePuzzle() {
         const inf = await getPuzzleInfo({ puzzleId: numericId, network });
         if (!alive) return;
         setInfo(inf);
-        // Check difficulty consistency
         if ((inf?.difficulty || '').toLowerCase() !== (difficulty || '').toLowerCase()) {
           console.warn('Route difficulty does not match on-chain difficulty. Proceeding with on-chain difficulty.');
         }
-        // Check entry
         if (!address) {
           setEntered(false);
         } else {
@@ -103,7 +106,6 @@ export default function SolvePuzzle() {
             setEntered(false);
           }
         }
-        // Leaderboard initial
         const lb = await getLeaderboard({ puzzleId: numericId, network });
         if (!alive) return;
         setLeaders(lb);
@@ -117,7 +119,6 @@ export default function SolvePuzzle() {
     return () => { alive = false; };
   }, [numericId, network, address, difficulty]);
 
-  // Refresh leaderboard every 10s
   useEffect(() => {
     let timer: any;
     let alive = true;
@@ -133,7 +134,6 @@ export default function SolvePuzzle() {
     return () => { alive = false; clearTimeout(timer); };
   }, [numericId, network]);
 
-  // Resize observer
   useEffect(() => {
     const el = boardWrapRef.current;
     if (!el) return;
@@ -146,7 +146,6 @@ export default function SolvePuzzle() {
     return () => ro.disconnect();
   }, []);
 
-  // Initialize chess engine on puzzle
   useEffect(() => {
     if (!localPuzzle) return;
     const g = new Chess(localPuzzle.fen);
@@ -161,25 +160,21 @@ export default function SolvePuzzle() {
     setPenalties(0);
   }, [localPuzzle?.id, localPuzzle?.fen]);
 
-  // Timer
   useEffect(() => {
     if (!localPuzzle) return;
     const id = setInterval(() => setElapsed((s) => s + 1), 1000);
     return () => clearInterval(id);
   }, [localPuzzle?.id]);
 
-  // Redirect if not entered (after load)
   useEffect(() => {
     if (loading) return;
     if (!entered) {
-      // redirect to home
       navigate('/', { replace: true });
     }
   }, [loading, entered]);
 
   const nextExpectedSan = useMemo(() => localPuzzle?.solution[index] ?? null, [localPuzzle?.solution, index]);
 
-  // Autoplay opponent reply on odd index
   const maybeAutoPlayOpponent = useCallback(() => {
     if (!game || !localPuzzle) return;
     if (index >= localPuzzle.solution.length) return;
@@ -271,7 +266,6 @@ export default function SolvePuzzle() {
           setSubmitError(res?.error || 'Submit failed');
         } else {
           setSubmitError(null);
-          // Force refresh leaderboard after a short delay
           try { const lb = await getLeaderboard({ puzzleId: numericId, network }); setLeaders(lb); } catch {}
         }
       } catch (e: any) {
@@ -289,122 +283,289 @@ export default function SolvePuzzle() {
     return better + 1;
   }, [leaders, totalTime]);
 
-  // Styles
-  const boardStyle = useMemo(() => ({ borderRadius: 0, boxShadow: 'inset 0 0 0 3px #000' }), []);
+  const boardStyle = useMemo(() => ({ borderRadius: 0, boxShadow: `inset 0 0 0 6px ${colors.border}` }), []);
   const customDark = '#111827';
   const customLight = '#fde68a';
   const squareStyles = useMemo(() => {
     const styles: Record<string, React.CSSProperties> = {};
     if (lastMove) {
-      styles[lastMove.from] = { background: 'rgba(16,185,129,0.35)' };
-      styles[lastMove.to] = { background: 'rgba(16,185,129,0.5)' };
+      styles[lastMove.from] = { background: colors.success, opacity: 0.5 };
+      styles[lastMove.to] = { background: colors.success, opacity: 0.7 };
     }
     if (hintMove) {
-      styles[hintMove.from] = { background: 'rgba(59,130,246,0.35)' };
-      styles[hintMove.to] = { background: 'rgba(59,130,246,0.5)' };
+      styles[hintMove.from] = { background: colors.accent, opacity: 0.5, boxShadow: `inset 0 0 0 4px ${colors.accent}` };
+      styles[hintMove.to] = { background: colors.accent, opacity: 0.7, boxShadow: `inset 0 0 0 4px ${colors.accent}` };
     }
     return styles;
   }, [lastMove, hintMove]);
 
-  // Loading & errors
+  const customPieces = useMemo(() => {
+    const map: Record<string, (props: { squareWidth: number }) => JSX.Element> = {};
+    (['wK','wQ','wR','wB','wN','wP','bK','bQ','bR','bB','bN','bP'] as const).forEach((k) => {
+      map[k] = ({ squareWidth }) => (
+        <div
+          style={{
+            width: squareWidth,
+            height: squareWidth,
+            fontSize: squareWidth * 0.65,
+            textShadow: `3px 3px 0 ${colors.border}`,
+            color: k.startsWith('w') ? '#fff' : '#000',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {unicode[k]}
+        </div>
+      );
+    });
+    return map;
+  }, []);
+
   if (loading) {
     return <ChessBoardSkeleton />;
   }
   if (error || !localPuzzle || !info) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-yellow-200 via-rose-200 to-blue-200 flex items-center justify-center">
-        <div className={`${brutal} bg-white p-6 text-center`}>
-          <div className="text-xl font-black mb-2">Puzzle not available</div>
-          <div className="text-sm opacity-70 mb-4">{error || 'This puzzle could not be loaded.'}</div>
-          <button className={`${brutal} px-4 py-2 bg-black text-white`} onClick={() => navigate('/')}>Go Home</button>
-        </div>
+      <div style={{ minHeight: '100vh', background: colors.light, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+        <NeoCard color={colors.error} rotate={-2}>
+          <div style={{ padding: '32px', textAlign: 'center' }}>
+            <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 900, fontSize: '32px', marginBottom: '16px', textTransform: 'uppercase' }}>
+              PUZZLE NOT AVAILABLE
+            </h2>
+            <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '14px', marginBottom: '24px', opacity: 0.7 }}>
+              {error || 'This puzzle could not be loaded.'}
+            </p>
+            <NeoButton variant="primary" size="lg" onClick={() => navigate('/')}>
+              GO HOME
+            </NeoButton>
+          </div>
+        </NeoCard>
       </div>
     );
   }
 
-  const gridCols = 'grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-4 lg:gap-6';
+  const difficultyColor = getDifficultyColor(difficulty as any);
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-yellow-200 via-rose-200 to-blue-200 text-black relative overflow-hidden`}> 
+    <div style={{ minHeight: '100vh', background: colors.light, position: 'relative', overflow: 'hidden' }}>
+      {/* Floating background shapes */}
+      <div className="grain-texture" style={{ position: 'absolute', inset: 0, opacity: 0.03, pointerEvents: 'none' }} />
+      
       <motion.div
         key={wrongShakeKey}
         initial={{ x: 0 }}
-        animate={{ x: [0, -6, 6, -3, 3, 0] }}
-        transition={{ duration: 0.3 }}
-        className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8"
+        animate={{ x: wrongShakeKey > 0 ? [0, -10, 10, -5, 5, 0] : 0 }}
+        transition={{ duration: 0.4 }}
+        style={{ position: 'relative', zIndex: 10, maxWidth: '1600px', margin: '0 auto', padding: '32px 20px' }}
       >
-        <div className={`${gridCols}`}>
-          <div ref={boardWrapRef} className={`${brutal} bg-yellow-200 p-3 flex items-center justify-center`}>
-            {boardFen && (
-              <Chessboard
-                {...({
-                  position: boardFen,
-                  onPieceDrop: onDrop,
-                  customBoardStyle: boardStyle,
-                  customDarkSquareStyle: { backgroundColor: customDark },
-                  customLightSquareStyle: { backgroundColor: customLight },
-                  customSquareStyles: squareStyles,
-                  boardWidth: boardSize,
-                  animationDuration: 300,
-                  areArrowsAllowed: false,
-                } as any)}
-              />
-            )}
-          </div>
+        <Header />
 
-          <div className={`${brutal} bg-white/80 backdrop-blur p-4 sm:p-6 lg:p-6 flex flex-col`}>
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-xs font-black uppercase tracking-wider">#{numericId} • {(info?.difficulty || '').toUpperCase()}</div>
-              <div className="text-xs font-black">Time: {formatTime(totalTime)} {penalties > 0 && <span className="opacity-60">(+{penalties}s)</span>}</div>
-            </div>
-            <div className="text-lg font-black mb-1">{localPuzzle.description}</div>
-            <div className="text-xs opacity-70 mb-4">Start position: {localPuzzle.fen}</div>
-
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className={`${brutal} bg-green-200 p-3`}>
-                <div className="flex items-center gap-2 text-[10px] uppercase font-black"><Trophy className="h-3 w-3" /> Prize Pool</div>
-                <div className="text-xl font-black">{microToStx(info.prizePool)} STX</div>
-              </div>
-              <div className={`${brutal} bg-blue-200 p-3`}>
-                <div className="flex items-center gap-2 text-[10px] uppercase font-black"><Users className="h-3 w-3" /> Players</div>
-                <div className="text-xl font-black">{String(info.entryCount)}</div>
-              </div>
-            </div>
-
-            <div className="mb-3">
-              <div className="text-xs font-bold uppercase mb-2">Leaderboard</div>
-              <div className="grid gap-2 max-h-[320px] overflow-auto pr-1">
-                {leaders.length === 0 && (
-                  <div className={`${brutal} bg-white p-2 text-xs`}>No entries yet</div>
-                )}
-                {leaders.slice(0, 12).map((r, i) => (
-                  <div key={String(r.player)+i} className={`${brutal} bg-white p-2 flex items-center justify-between text-xs`}>
-                    <div className="font-black">{i + 1}.</div>
-                    <div className="font-mono">{r.player?.slice(0,6)}…{r.player?.slice(-4)}</div>
-                    <div className="font-black">{formatTime(Number(r.solveTime))}</div>
+        {/* Main Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(1, 1fr)', gap: '24px', '@media (min-width: 1024px)': { gridTemplateColumns: '2fr 1fr' } }}>
+            {/* Board Section */}
+            <div ref={boardWrapRef}>
+              <motion.div
+                initial={{ rotate: -1, y: 20, opacity: 0 }}
+                animate={{ rotate: -1, y: 0, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 300 }}
+                style={{
+                  padding: '20px',
+                  background: difficultyColor,
+                  border: `6px solid ${colors.border}`,
+                  boxShadow: shadows.brutal,
+                }}
+              >
+                {/* Puzzle Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+                  <NeoBadge color={colors.dark} size="lg">
+                    #{numericId} • {(info?.difficulty || '').toUpperCase()}
+                  </NeoBadge>
+                  <div
+                    style={{
+                      padding: '12px 20px',
+                      background: colors.dark,
+                      border: `5px solid ${colors.border}`,
+                      fontFamily: "'JetBrains Mono', monospace",
+                      fontWeight: 900,
+                      fontSize: 'clamp(20px, 4vw, 28px)',
+                      color: colors.primary,
+                      textShadow: `0 0 8px ${colors.primary}`,
+                    }}
+                  >
+                    {formatTime(totalTime)}
+                    {penalties > 0 && (
+                      <span style={{ fontSize: '14px', opacity: 0.7 }}> (+{penalties}s)</span>
+                    )}
                   </div>
-                ))}
-              </div>
+                </div>
+
+                {/* Chess Board */}
+                {boardFen && (
+                  <Chessboard
+                    {...({
+                      position: boardFen,
+                      onPieceDrop: onDrop,
+                      customBoardStyle: boardStyle,
+                      customDarkSquareStyle: { backgroundColor: customDark },
+                      customLightSquareStyle: { backgroundColor: customLight },
+                      customSquareStyles: squareStyles,
+                      boardWidth: boardSize,
+                      animationDuration: 200,
+                      areArrowsAllowed: false,
+                      customPieces: customPieces,
+                    } as any)}
+                  />
+                )}
+
+                {/* Action Buttons */}
+                <div style={{ display: 'flex', gap: '12px', marginTop: '20px', flexWrap: 'wrap' }}>
+                  <NeoButton variant="accent" size="md" onClick={useHint} disabled={solved}>
+                    <Lightbulb className="h-4 w-4 inline mr-2" />
+                    HINT (-30s)
+                  </NeoButton>
+                  <NeoButton variant="secondary" size="md" onClick={() => {
+                    if (!localPuzzle) return;
+                    const g = new Chess(localPuzzle.fen);
+                    setGame(g);
+                    setBoardFen(localPuzzle.fen);
+                    setIndex(0);
+                    setHistory([]);
+                    setLastMove(null);
+                    setHintMove(null);
+                    setSolved(false);
+                    setElapsed(0);
+                    setPenalties(0);
+                  }}>
+                    <RotateCcw className="h-4 w-4 inline mr-2" />
+                    RESET
+                  </NeoButton>
+                  <NeoButton variant="danger" size="md" onClick={() => {
+                    if (confirm('Give up and exit? You can re-enter later.')) navigate('/');
+                  }}>
+                    <FlagTriangleRight className="h-4 w-4 inline mr-2" />
+                    GIVE UP
+                  </NeoButton>
+                </div>
+              </motion.div>
             </div>
 
-            <div className="mt-auto flex flex-wrap gap-2">
-              <button className={`px-3 py-2 bg-blue-300 hover:bg-blue-400 ${brutal}`} onClick={useHint}><Lightbulb className="h-4 w-4 inline mr-1"/>Hint (-30s)</button>
-              <button className={`px-3 py-2 bg-yellow-300 hover:bg-yellow-400 ${brutal}`} onClick={() => {
-                if (!localPuzzle) return;
-                const g = new Chess(localPuzzle.fen);
-                setGame(g);
-                setBoardFen(localPuzzle.fen);
-                setIndex(0);
-                setHistory([]);
-                setLastMove(null);
-                setHintMove(null);
-                setSolved(false);
-                setElapsed(0);
-                setPenalties(0);
-              }}><RotateCcw className="h-4 w-4 inline mr-1"/>Reset</button>
-              <button className={`px-3 py-2 bg-red-300 hover:bg-red-400 ${brutal}`} onClick={() => {
-                if (confirm('Give up and exit? You can re-enter later.')) navigate('/');
-              }}><FlagTriangleRight className="h-4 w-4 inline mr-1"/>Give up and exit</button>
+            {/* Sidebar */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              {/* Puzzle Info */}
+              <motion.div
+                initial={{ rotate: 1, y: 20, opacity: 0 }}
+                animate={{ rotate: 1, y: 0, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 300, delay: 0.1 }}
+                style={{
+                  padding: '20px',
+                  background: colors.white,
+                  border: `6px solid ${colors.border}`,
+                  boxShadow: shadows.brutal,
+                }}
+              >
+                <h3
+                  style={{
+                    fontFamily: "'Space Grotesk', sans-serif",
+                    fontWeight: 900,
+                    fontSize: 'clamp(20px, 4vw, 28px)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '-0.02em',
+                    marginBottom: '16px',
+                    color: colors.dark,
+                  }}
+                >
+                  {localPuzzle.description || 'SOLVE THE PUZZLE'}
+                </h3>
+
+                {/* Stats Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+                  <div
+                    style={{
+                      padding: '12px',
+                      background: colors.success,
+                      border: `4px solid ${colors.border}`,
+                      boxShadow: shadows.brutalSmall,
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                      <Trophy className="h-4 w-4" />
+                      <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, fontSize: '10px', textTransform: 'uppercase' }}>
+                        PRIZE POOL
+                      </span>
+                    </div>
+                    <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 900, fontSize: 'clamp(18px, 3vw, 24px)', color: colors.dark }}>
+                      {microToStx(info.prizePool)} STX
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      padding: '12px',
+                      background: colors.accent,
+                      border: `4px solid ${colors.border}`,
+                      boxShadow: shadows.brutalSmall,
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                      <Users className="h-4 w-4" />
+                      <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, fontSize: '10px', textTransform: 'uppercase' }}>
+                        PLAYERS
+                      </span>
+                    </div>
+                    <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 900, fontSize: 'clamp(18px, 3vw, 24px)', color: colors.dark }}>
+                      {String(info.entryCount)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Move Progress */}
+                <div
+                  style={{
+                    padding: '12px',
+                    background: colors.primary,
+                    border: `4px solid ${colors.border}`,
+                    boxShadow: shadows.brutalSmall,
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, fontSize: '12px', textTransform: 'uppercase' }}>
+                      PROGRESS
+                    </span>
+                    <NeoBadge color={colors.dark} size="sm">
+                      {history.length}/{localPuzzle.solution.length}
+                    </NeoBadge>
+                  </div>
+                  {index < localPuzzle.solution.length && (
+                    <motion.div
+                      animate={{ scale: [1, 1.02, 1] }}
+                      transition={{ repeat: Infinity, duration: 1.5 }}
+                      style={{
+                        padding: '8px 12px',
+                        background: colors.dark,
+                        border: `3px solid ${colors.border}`,
+                        fontFamily: "'JetBrains Mono', monospace",
+                        fontWeight: 700,
+                        fontSize: '14px',
+                        color: colors.primary,
+                        textAlign: 'center',
+                      }}
+                    >
+                      NEXT MOVE: {localPuzzle.solution[index]}
+                    </motion.div>
+                  )}
+                </div>
+              </motion.div>
+
+              {/* Live Leaderboard */}
+              <motion.div
+                initial={{ rotate: -1, y: 20, opacity: 0 }}
+                animate={{ rotate: 0, y: 0, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 300, delay: 0.2 }}
+              >
+                <LiveLeaderboard puzzleId={numericId} limit={8} />
+              </motion.div>
             </div>
           </div>
         </div>
@@ -413,80 +574,177 @@ export default function SolvePuzzle() {
       {/* Celebration Modal */}
       <AnimatePresence>
         {solved && (
-          <motion.div className="fixed inset-0 z-50 flex items-center justify-center"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <div className="absolute inset-0 bg-black/40" />
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <div
+              className="absolute inset-0"
+              style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}
+              onClick={() => setSolved(false)}
+            />
+
             {/* Confetti */}
             <div className="pointer-events-none absolute inset-0 overflow-hidden">
               {Array.from({ length: 60 }).map((_, i) => (
-                <motion.div key={i}
-                  className="absolute w-2 h-2"
-                  style={{ left: `${(i * 13) % 100}%`, top: '-10px', background: i % 3 === 0 ? '#f59e0b' : i % 3 === 1 ? '#ef4444' : '#10b981', boxShadow: '2px 2px 0 #000' }}
+                <motion.div
+                  key={i}
+                  className="absolute"
+                  style={{
+                    left: `${(i * 7) % 100}%`,
+                    top: '-10px',
+                    width: '16px',
+                    height: '16px',
+                    background: i % 4 === 0 ? colors.primary : i % 4 === 1 ? colors.secondary : i % 4 === 2 ? colors.accent : colors.success,
+                    border: `3px solid ${colors.border}`,
+                  }}
                   initial={{ y: -20, rotate: 0, opacity: 0 }}
-                  animate={{ y: ['-10%', '110%'], rotate: [0, 360], opacity: [0, 1, 1, 0] }}
-                  transition={{ duration: 2.2 + (i % 10) * 0.15, delay: (i % 10) * 0.05 }}
+                  animate={{ y: ['0vh', '110vh'], rotate: [0, 720], opacity: [0, 1, 1, 0] }}
+                  transition={{ duration: 2.5 + (i % 10) * 0.2, delay: (i % 10) * 0.05 }}
                 />
               ))}
             </div>
-            <motion.div className={`relative bg-white p-6 ${brutal} max-w-lg w-full mx-3`}
-              initial={{ scale: 0.8, rotate: -2 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 20 }}>
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-2xl font-black">Puzzle Solved!</div>
-                <button onClick={() => setSolved(false)} className={`${brutal} bg-zinc-200 px-2 py-1`}><X className="h-4 w-4"/></button>
+
+            <motion.div
+              initial={{ scale: 0.7, rotate: -5 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+              style={{
+                position: 'relative',
+                maxWidth: '600px',
+                width: '90%',
+                padding: '40px',
+                background: colors.success,
+                border: `8px solid ${colors.border}`,
+                boxShadow: `0 0 0 4px ${colors.success}, ${shadows.brutalLarge}`,
+              }}
+            >
+              <button
+                onClick={() => setSolved(false)}
+                style={{
+                  position: 'absolute',
+                  top: '16px',
+                  right: '16px',
+                  padding: '8px',
+                  background: colors.dark,
+                  border: `4px solid ${colors.border}`,
+                  cursor: 'pointer',
+                }}
+              >
+                <X className="h-6 w-6" style={{ color: colors.white }} />
+              </button>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
+                <PartyPopper className="h-16 w-16" style={{ color: colors.dark }} />
+                <h2
+                  style={{
+                    fontFamily: "'Space Grotesk', sans-serif",
+                    fontWeight: 900,
+                    fontSize: 'clamp(36px, 6vw, 56px)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '-0.02em',
+                    color: colors.dark,
+                    textShadow: `6px 6px 0px ${colors.border}`,
+                  }}
+                >
+                  SOLVED!
+                </h2>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-xs mb-3">
-                <div className={`${brutal} bg-yellow-200 p-2`}>
-                  <div className="uppercase font-black">Your Time</div>
-                  <div className="text-lg font-black">{formatTime(totalTime)} {penalties > 0 && <span className="opacity-60">(+{penalties}s)</span>}</div>
+
+              {/* Results Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+                <div
+                  style={{
+                    padding: '20px',
+                    background: colors.dark,
+                    border: `5px solid ${colors.border}`,
+                  }}
+                >
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '12px', textTransform: 'uppercase', color: colors.white, marginBottom: '8px' }}>
+                    YOUR TIME
+                  </div>
+                  <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 900, fontSize: 'clamp(28px, 5vw, 36px)', color: colors.primary, textShadow: `0 0 10px ${colors.primary}` }}>
+                    {formatTime(totalTime)}
+                  </div>
+                  {penalties > 0 && (
+                    <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '10px', color: colors.white, opacity: 0.7, marginTop: '4px' }}>
+                      (+{penalties}s penalties)
+                    </div>
+                  )}
                 </div>
-                <div className={`${brutal} bg-green-200 p-2`}>
-                  <div className="uppercase font-black">Current Rank</div>
-                  <div className="text-lg font-black">#{yourRank}</div>
+
+                <div
+                  style={{
+                    padding: '20px',
+                    background: colors.primary,
+                    border: `5px solid ${colors.border}`,
+                  }}
+                >
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '12px', textTransform: 'uppercase', color: colors.dark, marginBottom: '8px' }}>
+                    YOUR RANK
+                  </div>
+                  <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 900, fontSize: 'clamp(28px, 5vw, 36px)', color: colors.dark }}>
+                    #{yourRank}
+                  </div>
                 </div>
               </div>
 
-              <div className="mb-3">
-                <div className="text-xs font-bold uppercase mb-2">Submission</div>
-                <div className={`${brutal} p-2 ${submitting ? 'bg-blue-200' : submitError ? 'bg-red-200' : 'bg-white'}`}>
-                  {submitting && <div className="text-xs font-black">Submitting your result…</div>}
-                  {!submitting && submitError && (
-                    <div className="flex items-center justify-between gap-2 text-xs">
-                      <div className="font-black">{submitError}</div>
-                      <button className={`${brutal} bg-black text-white px-2 py-1`} onClick={async () => {
-                        submittedRef.current = false;
-                        setTxId(null);
-                        setSubmitError(null);
-                        setSolved(true);
-                      }}>Retry</button>
-                    </div>
-                  )}
-                  {!submitting && !submitError && txId && (
-                    <div className="text-xs">Tx submitted: <span className="font-mono break-all">{txId}</span></div>
-                  )}
-                  {!submitting && !submitError && !txId && (
-                    <div className="text-xs opacity-70">Submitted.</div>
-                  )}
+              {/* Submission Status */}
+              <div
+                style={{
+                  padding: '16px',
+                  background: submitting ? colors.accent : submitError ? colors.error : colors.white,
+                  border: `4px solid ${colors.border}`,
+                  marginBottom: '24px',
+                }}
+              >
+                <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, fontSize: '12px', textTransform: 'uppercase', marginBottom: '8px' }}>
+                  SUBMISSION
                 </div>
+                {submitting && (
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '14px' }}>
+                    Submitting your result to blockchain…
+                  </div>
+                )}
+                {!submitting && submitError && (
+                  <div>
+                    <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '14px', marginBottom: '8px', color: colors.white }}>
+                      {submitError}
+                    </div>
+                    <NeoButton variant="primary" size="sm" onClick={() => {
+                      submittedRef.current = false;
+                      setTxId(null);
+                      setSubmitError(null);
+                      setSolved(true);
+                    }}>
+                      RETRY
+                    </NeoButton>
+                  </div>
+                )}
+                {!submitting && !submitError && txId && (
+                  <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, fontSize: '11px', wordBreak: 'break-all' }}>
+                    TX: {txId}
+                  </div>
+                )}
+                {!submitting && !submitError && !txId && (
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '14px', opacity: 0.7 }}>
+                    Submitted successfully!
+                  </div>
+                )}
               </div>
 
-              <div className="mb-3">
-                <div className="text-xs font-bold uppercase mb-2">Leaderboard</div>
-                <div className="grid gap-2 max-h-[200px] overflow-auto pr-1">
-                  {leaders.slice(0, 8).map((r, i) => (
-                    <div key={String(r.player)+i} className={`${brutal} bg-white p-2 flex items-center justify-between text-xs`}>
-                      <div className="font-black">{i + 1}.</div>
-                      <div className="font-mono">{r.player?.slice(0,6)}…{r.player?.slice(-4)}</div>
-                      <div className="font-black">{formatTime(Number(r.solveTime))}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
+              {/* Actions */}
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'space-between', flexWrap: 'wrap' }}>
                 <ShareButton type="solve" data={{ durationText: formatTime(totalTime) }} url={typeof window !== 'undefined' ? `${window.location.origin}/puzzle/${numericId}` : undefined} />
-                <button className={`${brutal} bg-green-300 hover:bg-green-400 px-3 py-2`} onClick={() => {
+                <NeoButton variant="primary" size="lg" onClick={() => {
                   setSolved(false);
                   navigate('/');
-                }}>Solve Another</button>
+                }}>
+                  <Flame className="h-5 w-5 inline mr-2" />
+                  SOLVE ANOTHER
+                </NeoButton>
               </div>
             </motion.div>
           </motion.div>
