@@ -4,6 +4,7 @@ import Home from './pages/Home';
 import PuzzlePage from './pages/Puzzle';
 import SolvePuzzle from './pages/SolvePuzzle';
 import MyWins from './pages/MyWins';
+import Profile from './pages/Profile';
 import { Toaster } from 'sonner';
 import TransactionStatus from './components/TransactionStatus';
 
@@ -18,6 +19,7 @@ export default function App() {
           <Route path="/puzzle/:id" element={<PuzzlePage />} />
           <Route path="/solve/:difficulty/:puzzleId" element={<SolvePuzzle />} />
           <Route path="/wins" element={<MyWins />} />
+          <Route path="/profile" element={<Profile />} />
         </Routes>
         <TransactionStatus />
         <Toaster richColors position="top-right" />
