@@ -82,7 +82,12 @@ export default function PuzzlePage() {
 
         <div>
           {isLoading && (
-            <div className={`${brutal} bg-white/80 dark:bg-zinc-900/60 backdrop-blur p-6 text-center`}>Loading…</div>
+            <div className="my-4">
+              {/* Skeleton for solver area */}
+              <div className={`${brutal} bg-white/80 dark:bg-zinc-900/60 backdrop-blur p-4`}>
+                <div className="skeleton h-72 w-full" />
+              </div>
+            </div>
           )}
           {error && (
             <div className={`${brutal} bg-red-200 p-6 text-black`}>Failed to load puzzle info</div>

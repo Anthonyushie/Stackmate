@@ -307,11 +307,8 @@ export default function SolvePuzzle() {
 
   // Loading & errors
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-yellow-200 via-rose-200 to-blue-200 flex items-center justify-center">
-        <div className={`${brutal} bg-white p-6`}>Loading puzzle…</div>
-      </div>
-    );
+    const ChessBoardSkeleton = (await import('../components/skeletons/ChessBoardSkeleton')).default;
+    return <ChessBoardSkeleton />;
   }
   if (error || !localPuzzle || !info) {
     return (

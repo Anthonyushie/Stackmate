@@ -172,7 +172,22 @@ export default function MyWins() {
         </div>
 
         {loading && (
-          <div className={`${brutal} bg-white p-4`}>Loading your wins…</div>
+          <div>
+            <div className="mb-2 text-xs font-black uppercase tracking-wider">Loading your wins…</div>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className={`${brutal} bg-white p-4 mb-2`}>
+                <div className="skeleton h-4 w-40 mb-2" />
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {Array.from({ length: 4 }).map((_, j) => (
+                    <div key={j} className={`${brutal} bg-white p-2`}>
+                      <div className="skeleton h-3 w-16 mb-2" />
+                      <div className="skeleton h-5 w-24" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         )}
         {!loading && filtered.length === 0 && (
           <div className={`${brutal} bg-white p-6 text-center`}>

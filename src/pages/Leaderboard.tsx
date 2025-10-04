@@ -5,6 +5,7 @@ import { getPuzzleInfo, getLeaderboard, type PuzzleInfo, type LeaderboardEntry }
 import { fetchCallReadOnlyFunction, ClarityType, uintCV } from '@stacks/transactions';
 import { getNetwork, type NetworkName } from '../lib/stacks';
 import { Link } from 'react-router-dom';
+import LeaderboardSkeleton from '../components/skeletons/LeaderboardSkeleton';
 
 const brutal = 'rounded-none border-[3px] border-black shadow-[8px_8px_0_#000]';
 
@@ -222,6 +223,19 @@ export default function LeaderboardPage() {
     }
   });
 
+  if (q.isLoading && !q.data) {
+    return (
+      <div className={`min-h-screen bg-gradient-to-br from-yellow-200 via-rose-200 to-blue-200 text-black relative overflow-hidden`}>
+        <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+          <header className="flex items-center justify-between mb-6">
+            <div className={`${brutal} bg-white/80 backdrop-blur px-4 py-2 text-xl font-black tracking-tight`}>Global Leaderboard</div>
+            <div className="text-xs opacity-70">Updates every 60s</div>
+          </header>
+          <LeaderboardSkeleton rows={10} />
+        </div>
+      </div>
+    );
+  }
   const data = q.data as any;
   const players: Array<{ address: string; totalWins: number; totalWinnings: bigint; totalWinningsStx: string }> = data?.players || [];
   const today = data?.today || { beginner: [], intermediate: [], expert: [] };

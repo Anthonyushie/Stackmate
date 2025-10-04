@@ -11,6 +11,7 @@ import { getApiBaseUrl, microToStx, type NetworkName, getNetwork } from '../lib/
 import { fetchCallReadOnlyFunction, uintCV, standardPrincipalCV, ClarityType } from '@stacks/transactions';
 import PuzzleCard from '../components/PuzzleCard';
 import EnterPuzzleModal from '../components/EnterPuzzleModal';
+import PuzzleCardSkeleton from '../components/skeletons/PuzzleCardSkeleton';
 import { Trophy, Zap, Clock, Users, Coins, Crown, Target, Sparkles } from 'lucide-react';
 
 const brutal = 'rounded-none border-[3px] border-black shadow-[8px_8px_0_#000]';
@@ -281,6 +282,13 @@ export default function Home() {
             <h2 className="text-2xl sm:text-3xl font-black">Choose Your Challenge</h2>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
+            {(activeLoading || infoQueries.some(q => q.isLoading)) && (
+              <>
+                <PuzzleCardSkeleton />
+                <PuzzleCardSkeleton />
+                <PuzzleCardSkeleton />
+              </>
+            )}
             {displayList.map((d, idx) => {
               const info = d.info as PuzzleInfo | null;
               const id = d.id as number | undefined;

@@ -8,6 +8,7 @@ import { microToStx, type NetworkName, getNetwork } from '../lib/stacks'
 import { getPuzzleInfo, type PuzzleInfo } from '../lib/contracts'
 import { ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Area, AreaChart } from 'recharts'
 import { useSearchParams } from 'react-router-dom'
+import ProfileStatsSkeleton from '../components/skeletons/ProfileStatsSkeleton'
 
 const brutal = 'rounded-none border-[3px] border-black shadow-[8px_8px_0_#000]'
 
@@ -234,6 +235,8 @@ export default function Profile() {
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil((rows.length || 0) / pageSize)), [rows.length])
 
+  const loadingAny = statsQ.isLoading || entriesQ.isLoading || entryDetailQueries.some(q => q.isLoading) || puzzleInfoQueries.some(q => q.isLoading)
+
   const achievements = useMemo(() => {
     const totalWins = Number(statsQ.data?.totalWins || 0n)
     const totalEntries = Number(statsQ.data?.totalEntries || 0n)
@@ -263,6 +266,10 @@ export default function Profile() {
           <WalletConnect />
         </header>
 
+        {loadingAny && (
+          <ProfileStatsSkeleton />
+        )}
+        {!loadingAny && (
         <section className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className={`${brutal} bg-white/85 p-4`}>
             <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider"><Star className="h-4 w-4"/> Total Entered</div>
