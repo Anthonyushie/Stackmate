@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, Loader2, LogOut, Wallet, Copy, Network, Link } from 'lucide-react';
+import { ChevronDown, Loader2, LogOut, Wallet, Copy, Network, Link as LinkIcon } from 'lucide-react';
 import useWallet, { type WalletProviderId } from '../hooks/useWallet';
 import { truncateMiddle } from '../lib/stacks';
-
-const brutal =
-  'rounded-none border-[3px] border-black shadow-[6px_6px_0_#000] active:shadow-[2px_2px_0_#000] active:translate-x-[4px] active:translate-y-[4px] transition-all';
+import { colors, shadows } from '../styles/neo-brutal-theme';
 
 const WALLET_OPTIONS: Array<{ id: WalletProviderId; name: string }> = [
   { id: 'LeatherProvider', name: 'Leather' },
@@ -20,13 +18,27 @@ const getProviderDisplayName = (providerId: WalletProviderId | null): string => 
 };
 
 const ProviderOption = ({ id, name, onClick }: { id: WalletProviderId; name: string; onClick: () => void }) => (
-  <button
+  <motion.button
+    whileHover={{ x: -2, y: -2 }}
+    whileTap={{ scale: 0.98 }}
     onClick={onClick}
-    className={`w-full text-left px-4 py-2 bg-white hover:bg-yellow-200 ${brutal}`}
+    style={{
+      width: '100%',
+      textAlign: 'left',
+      padding: '12px 16px',
+      background: colors.white,
+      border: `4px solid ${colors.border}`,
+      boxShadow: shadows.brutalSmall,
+      fontFamily: "'Inter', sans-serif",
+      fontWeight: 900,
+      fontSize: '14px',
+      textTransform: 'uppercase',
+      cursor: 'pointer',
+    }}
   >
-    <span className="font-semibold">{name}</span>
-    <span className="text-xs ml-2 opacity-70">Stacks wallet</span>
-  </button>
+    <div>{name}</div>
+    <div style={{ fontSize: '10px', opacity: 0.7, textTransform: 'none' }}>Stacks wallet</div>
+  </motion.button>
 );
 
 export default function WalletConnect({ className = '' }: { className?: string }) {
@@ -39,15 +51,19 @@ export default function WalletConnect({ className = '' }: { className?: string }
   }, []);
 
   const label = useMemo(() => {
-    if (isConnecting) return 'Connecting…';
-    if (!address) return 'Connect Wallet';
+    if (isConnecting) return 'CONNECTING…';
+    if (!address) return 'CONNECT WALLET';
     const bal = balance?.stx ? `${balance.stx} STX` : '— STX';
     return `${truncateMiddle(address)} • ${bal}`;
   }, [isConnecting, address, balance]);
 
+  const isConnected = Boolean(address);
+
   return (
     <div className={`relative inline-block ${className}`}>
-      <button
+      <motion.button
+        whileHover={!isConnecting ? { x: -2, y: -2 } : {}}
+        whileTap={!isConnecting ? { scale: 0.98 } : {}}
         onClick={() => {
           if (!address) {
             setShowProviders((v) => !v);
@@ -56,29 +72,96 @@ export default function WalletConnect({ className = '' }: { className?: string }
           }
         }}
         disabled={isConnecting}
-        className={`flex items-center gap-2 px-4 py-3 bg-yellow-300 hover:bg-yellow-400 ${brutal}`}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '12px 20px',
+          background: isConnected ? colors.accent2 : colors.primary,
+          border: `5px solid ${colors.border}`,
+          boxShadow: shadows.brutal,
+          cursor: isConnecting ? 'not-allowed' : 'pointer',
+          fontFamily: "'Inter', sans-serif",
+          fontWeight: 900,
+          fontSize: '14px',
+          textTransform: 'uppercase',
+          color: colors.dark,
+          opacity: isConnecting ? 0.7 : 1,
+          position: 'relative',
+        }}
       >
-        {isConnecting ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : (
-          <Wallet className="h-4 w-4" />
+        {/* Connected indicator dot */}
+        {isConnected && (
+          <motion.div
+            animate={{ scale: [1, 1.3, 1] }}
+            transition={{ repeat: Infinity, duration: 2 }}
+            style={{
+              position: 'absolute',
+              top: '-6px',
+              right: '-6px',
+              width: '16px',
+              height: '16px',
+              borderRadius: '50%',
+              background: colors.accent2,
+              border: `3px solid ${colors.border}`,
+              boxShadow: shadows.brutalSmall,
+            }}
+          />
         )}
-        <span className="text-sm font-black tracking-tight">{label}</span>
-        <ChevronDown className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`} />
-      </button>
 
+        {isConnecting ? (
+          <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
+            <Loader2 className="h-5 w-5" />
+          </motion.div>
+        ) : (
+          <Wallet className="h-5 w-5" />
+        )}
+        <span>{label}</span>
+        <motion.div
+          animate={{ rotate: open || showProviders ? 180 : 0 }}
+          transition={{ type: 'spring', stiffness: 300 }}
+        >
+          <ChevronDown className="h-4 w-4" />
+        </motion.div>
+      </motion.button>
+
+      {/* Provider Selection Dropdown */}
       <AnimatePresence>
         {!address && showProviders && (
           <motion.div
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 6 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 26 }}
-            className="absolute left-0 mt-3 w-[260px] z-50"
+            initial={{ opacity: 0, scale: 0.9, y: -10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: -10 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+            style={{
+              position: 'absolute',
+              left: 0,
+              marginTop: '12px',
+              width: '280px',
+              zIndex: 50,
+            }}
           >
-            <div className={`p-3 bg-pink-200 ${brutal}`}>
-              <div className="text-xs font-bold mb-2">Choose a wallet</div>
-              <div className="grid gap-2">
+            <div
+              style={{
+                padding: '16px',
+                background: colors.secondary,
+                border: `6px solid ${colors.border}`,
+                boxShadow: shadows.brutalLarge,
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: "'Space Grotesk', sans-serif",
+                  fontWeight: 900,
+                  fontSize: '14px',
+                  textTransform: 'uppercase',
+                  marginBottom: '12px',
+                  color: colors.white,
+                }}
+              >
+                CHOOSE A WALLET
+              </div>
+              <div style={{ display: 'grid', gap: '8px' }}>
                 {WALLET_OPTIONS.map((wallet) => (
                   <ProviderOption
                     key={wallet.id}
@@ -96,67 +179,191 @@ export default function WalletConnect({ className = '' }: { className?: string }
         )}
       </AnimatePresence>
 
+      {/* Connected Account Dropdown */}
       <AnimatePresence>
         {address && open && (
           <motion.div
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 6 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 26 }}
-            className="absolute right-0 mt-3 min-w-[260px] z-50"
+            initial={{ opacity: 0, scale: 0.9, y: -10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: -10 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+            style={{
+              position: 'absolute',
+              right: 0,
+              marginTop: '12px',
+              minWidth: '280px',
+              zIndex: 50,
+            }}
           >
-            <div className={`bg-white p-3 ${brutal}`}>
-              <div className="mb-2">
-                <div className="text-[10px] uppercase tracking-widest font-black opacity-60">Connected</div>
-                <div className="text-sm font-bold">{truncateMiddle(address)}</div>
-                <div className="text-xs">{balance?.stx ?? '—'} STX</div>
-                {providerId && <div className="text-[10px] mt-1">via {getProviderDisplayName(providerId)}</div>}
+            <div
+              style={{
+                background: colors.white,
+                padding: '20px',
+                border: `6px solid ${colors.border}`,
+                boxShadow: shadows.brutalLarge,
+              }}
+            >
+              <div style={{ marginBottom: '16px' }}>
+                <div
+                  style={{
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    opacity: 0.6,
+                    marginBottom: '4px',
+                  }}
+                >
+                  CONNECTED
+                </div>
+                <div
+                  style={{
+                    fontFamily: "'Inter', sans-serif",
+                    fontSize: '16px',
+                    fontWeight: 900,
+                    marginBottom: '4px',
+                  }}
+                >
+                  {truncateMiddle(address)}
+                </div>
+                <div
+                  style={{
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: '14px',
+                    fontWeight: 700,
+                  }}
+                >
+                  {balance?.stx ?? '—'} STX
+                </div>
+                {providerId && (
+                  <div style={{ fontSize: '10px', marginTop: '4px', opacity: 0.7 }}>
+                    via {getProviderDisplayName(providerId)}
+                  </div>
+                )}
               </div>
-              <div className="grid gap-2">
-                <button
+
+              <div style={{ display: 'grid', gap: '8px' }}>
+                <motion.button
+                  whileHover={{ x: -2, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={async () => {
                     await navigator.clipboard.writeText(address);
                     setOpen(false);
                   }}
-                  className={`flex items-center gap-2 px-3 py-2 bg-green-200 hover:bg-green-300 ${brutal}`}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '12px 16px',
+                    background: colors.accent2,
+                    border: `4px solid ${colors.border}`,
+                    boxShadow: shadows.brutalSmall,
+                    cursor: 'pointer',
+                    fontWeight: 900,
+                    fontSize: '12px',
+                    textTransform: 'uppercase',
+                  }}
                 >
-                  <Copy className="h-4 w-4" /> Copy address
-                </button>
-                <button
+                  <Copy className="h-4 w-4" /> COPY ADDRESS
+                </motion.button>
+
+                <motion.button
+                  whileHover={{ x: -2, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={async () => {
                     await disconnect();
                     setOpen(false);
                   }}
-                  className={`flex items-center gap-2 px-3 py-2 bg-red-200 hover:bg-red-300 ${brutal}`}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '12px 16px',
+                    background: colors.error,
+                    border: `4px solid ${colors.border}`,
+                    boxShadow: shadows.brutalSmall,
+                    cursor: 'pointer',
+                    fontWeight: 900,
+                    fontSize: '12px',
+                    textTransform: 'uppercase',
+                    color: colors.white,
+                  }}
                 >
-                  <LogOut className="h-4 w-4" /> Disconnect
-                </button>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
+                  <LogOut className="h-4 w-4" /> DISCONNECT
+                </motion.button>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => switchNetwork('testnet')}
-                    className={`flex items-center justify-center gap-2 px-3 py-2 bg-blue-200 hover:bg-blue-300 ${brutal} ${
-                      network === 'testnet' ? 'ring-2 ring-black' : ''
-                    }`}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '12px',
+                      background: colors.intermediate,
+                      border: network === 'testnet' ? `6px solid ${colors.border}` : `4px solid ${colors.border}`,
+                      boxShadow: shadows.brutalSmall,
+                      cursor: 'pointer',
+                      fontWeight: 900,
+                      fontSize: '10px',
+                      textTransform: 'uppercase',
+                    }}
                   >
-                    <Network className="h-4 w-4" /> Testnet
-                  </button>
-                  <button
+                    <Network className="h-4 w-4" />
+                    TESTNET
+                  </motion.button>
+
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => switchNetwork('mainnet')}
-                    className={`flex items-center justify-center gap-2 px-3 py-2 bg-orange-200 hover:bg-orange-300 ${brutal} ${
-                      network === 'mainnet' ? 'ring-2 ring-black' : ''
-                    }`}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '12px',
+                      background: colors.accent3,
+                      border: network === 'mainnet' ? `6px solid ${colors.border}` : `4px solid ${colors.border}`,
+                      boxShadow: shadows.brutalSmall,
+                      cursor: 'pointer',
+                      fontWeight: 900,
+                      fontSize: '10px',
+                      textTransform: 'uppercase',
+                    }}
                   >
-                    <Network className="h-4 w-4" /> Mainnet
-                  </button>
+                    <Network className="h-4 w-4" />
+                    MAINNET
+                  </motion.button>
                 </div>
-                <a
+
+                <motion.a
+                  whileHover={{ x: -2, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
                   href={`https://explorer.hiro.so/${network === 'testnet' ? 'testnet/' : ''}address/${address}?chain=stacks`}
                   target="_blank"
-                  className={`flex items-center gap-2 px-3 py-2 bg-purple-200 hover:bg-purple-300 ${brutal}`}
                   rel="noreferrer"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '12px 16px',
+                    background: colors.accent1,
+                    border: `4px solid ${colors.border}`,
+                    boxShadow: shadows.brutalSmall,
+                    cursor: 'pointer',
+                    fontWeight: 900,
+                    fontSize: '12px',
+                    textTransform: 'uppercase',
+                    textDecoration: 'none',
+                    color: colors.dark,
+                  }}
                 >
-                  <Link className="h-4 w-4" /> View on explorer
-                </a>
+                  <LinkIcon className="h-4 w-4" /> VIEW ON EXPLORER
+                </motion.a>
               </div>
             </div>
           </motion.div>
