@@ -9,6 +9,7 @@ import { getPuzzleInfo, type PuzzleInfo } from '../lib/contracts';
 import WalletConnect from '../components/WalletConnect';
 import NotificationBell from '../components/NotificationBell';
 import ClaimPrizeModal from '../components/ClaimPrizeModal';
+import ShareButton from '../components/ShareButton';
 import { useUserStats } from '../hooks/useBlockchain';
 
 const brutal = 'rounded-none border-[3px] border-black shadow-[8px_8px_0_#000]';
@@ -64,6 +65,7 @@ export default function MyWins() {
   const [claimOpen, setClaimOpen] = useState(false);
   const [selected, setSelected] = useState<WinItem | null>(null);
   const [celebrate, setCelebrate] = useState(false);
+  const [lastClaimAmountStx, setLastClaimAmountStx] = useState<string | null>(null);
 
   const statsQ = useUserStats(address, !!address);
   const heightQ = useStacksHeight(network);
@@ -244,11 +246,17 @@ export default function MyWins() {
                 />
               ))}
             </div>
-            <motion.div className={`relative bg-white p-5 ${brutal} max-w-sm w-full mx-3 flex items-center gap-3`}
+            <motion.div className={`relative bg-white p-5 ${brutal} max-w-sm w-full mx-3`}
               initial={{ scale: 0.9, rotate: -2 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 20 }}>
-              <PartyPopper className="h-6 w-6"/>
-              <div className="text-lg font-black">Prize claimed!</div>
-              <button className={`${brutal} bg-zinc-200 px-2 py-1 ml-auto`} onClick={() => setCelebrate(false)}><X className="h-4 w-4"/></button>
+              <div className="flex items-center gap-3 mb-3">
+                <PartyPopper className="h-6 w-6"/>
+                <div className="text-lg font-black">Prize claimed!</div>
+                <button className={`${brutal} bg-zinc-200 px-2 py-1 ml-auto`} onClick={() => setCelebrate(false)}><X className="h-4 w-4"/></button>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-sm opacity-70">{lastClaimAmountStx ? `${lastClaimAmountStx} STX` : ''}</div>
+                <ShareButton type="win" data={{ amountStx: lastClaimAmountStx || undefined }} url={typeof window !== 'undefined' ? window.location.origin : undefined} />
+              </div>
             </motion.div>
           </motion.div>
         )}
@@ -265,10 +273,11 @@ export default function MyWins() {
           setClaimOpen(false);
           if (selected) {
             setWins((prev) => prev.map((w) => w.id === selected.id ? { ...w, claimed: true, claimable: false } : w));
+            try { setLastClaimAmountStx(microToStx(selected.netPrize)); } catch {}
           }
           setSelected(null);
           setCelebrate(true);
-          setTimeout(() => setCelebrate(false), 2500);
+          setTimeout(() => setCelebrate(false), 3000);
         }}
       />
     </div>

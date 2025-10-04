@@ -3,13 +3,15 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Chess, type Move, type Square } from 'chess.js';
 import { Chessboard } from 'react-chessboard';
-import { Trophy, Clock, Users, Lightbulb, RotateCcw, FlagTriangleRight, Share2, X } from 'lucide-react';
+import { Trophy, Clock, Users, Lightbulb, RotateCcw, FlagTriangleRight, X } from 'lucide-react';
 import useWallet from '../hooks/useWallet';
 import { getPuzzlesByDifficulty, type Puzzle, hashSolution } from '../lib/puzzles-db';
 import { getPuzzleInfo, getLeaderboard, type LeaderboardEntry } from '../lib/contracts';
 import { getApiBaseUrl, microToStx, type NetworkName, getNetwork } from '../lib/stacks';
 import { fetchCallReadOnlyFunction, uintCV, standardPrincipalCV, ClarityType } from '@stacks/transactions';
 import { useSubmitSolution } from '../hooks/useContract';
+import ShareButton from '../components/ShareButton';
+import { formatSolveTime } from '../lib/time-utils';
 
 const brutal = 'rounded-none border-[3px] border-black shadow-[8px_8px_0_#000]';
 
@@ -483,13 +485,7 @@ export default function SolvePuzzle() {
                 </div>
               </div>
               <div className="flex items-center justify-between">
-                <a
-                  className={`${brutal} bg-blue-300 hover:bg-blue-400 px-3 py-2 inline-flex items-center gap-2`}
-                  href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`I just solved a ${info?.difficulty} Stackmate puzzle in ${formatTime(totalTime)}! #Stacks #Chess`)}`}
-                  target="_blank" rel="noreferrer"
-                >
-                  <Share2 className="h-4 w-4"/> Share
-                </a>
+                <ShareButton type="solve" data={{ durationText: formatTime(totalTime) }} url={typeof window !== 'undefined' ? `${window.location.origin}/puzzle/${numericId}` : undefined} />
                 <button className={`${brutal} bg-green-300 hover:bg-green-400 px-3 py-2`} onClick={() => {
                   setSolved(false);
                   navigate('/');
