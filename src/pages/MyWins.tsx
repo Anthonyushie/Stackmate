@@ -1,19 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQueries, useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Calendar, CheckCircle2, Clock, Trophy, Wallet, X, PartyPopper } from 'lucide-react';
+import { Calendar, CheckCircle2, Clock, Trophy, Wallet, X, PartyPopper, Flame } from 'lucide-react';
 import useWallet from '../hooks/useWallet';
 import { fetchCallReadOnlyFunction, uintCV, standardPrincipalCV, ClarityType } from '@stacks/transactions';
 import { getApiBaseUrl, microToStx, type NetworkName } from '../lib/stacks';
 import { getPuzzleInfo, type PuzzleInfo } from '../lib/contracts';
-import WalletConnect from '../components/WalletConnect';
-import NotificationBell from '../components/NotificationBell';
-import { Link } from 'react-router-dom';
 import ClaimPrizeModal from '../components/ClaimPrizeModal';
 import ShareButton from '../components/ShareButton';
 import { useUserStats } from '../hooks/useBlockchain';
-
-const brutal = 'rounded-none border-[3px] border-black shadow-[8px_8px_0_#000]';
+import Header from '../components/Header';
+import { colors, shadows, getDifficultyColor } from '../styles/neo-brutal-theme';
+import NeoButton from '../components/neo/NeoButton';
+import NeoBadge from '../components/neo/NeoBadge';
+import NeoCard from '../components/neo/NeoCard';
 
 type WinItem = {
   id: number;
@@ -136,151 +136,440 @@ export default function MyWins() {
   const totalWinnings = useMemo(() => statsQ.data ? microToStx(statsQ.data.totalWinnings) : '0', [statsQ.data]);
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-yellow-200 via-rose-200 to-blue-200 text-black relative overflow-hidden`}>
-      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <div className="text-2xl sm:text-3xl font-black">My Wins</div>
-            <div className="text-xs opacity-70">Track and claim your prizes</div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link to="/leaderboard" className={`${brutal} bg-white/80 hover:bg-white px-3 py-2 text-sm`}>Leaderboard</Link>
-            <NotificationBell />
-            <WalletConnect />
-          </div>
+    <div style={{ minHeight: '100vh', background: colors.light, position: 'relative', overflow: 'hidden' }}>
+      <div className="grain-texture" style={{ position: 'absolute', inset: 0, opacity: 0.03, pointerEvents: 'none' }} />
+      
+      <div style={{ position: 'relative', zIndex: 10, maxWidth: '1400px', margin: '0 auto', padding: '32px 20px' }}>
+        <Header />
+
+        {/* Page Title */}
+        <motion.div
+          initial={{ rotate: -1, y: -10, opacity: 0 }}
+          animate={{ rotate: 1, y: 0, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 300 }}
+          style={{
+            display: 'inline-block',
+            padding: '16px 32px',
+            background: colors.success,
+            border: `6px solid ${colors.border}`,
+            boxShadow: shadows.brutal,
+            marginBottom: '24px',
+          }}
+        >
+          <h1
+            style={{
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontWeight: 900,
+              fontSize: 'clamp(32px, 5vw, 48px)',
+              textTransform: 'uppercase',
+              letterSpacing: '-0.02em',
+              color: colors.dark,
+              margin: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+            }}
+          >
+            <Trophy className="h-10 w-10" />
+            MY WINS
+          </h1>
+        </motion.div>
+
+        {/* Stats Cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px', marginBottom: '32px' }}>
+          <motion.div
+            initial={{ rotate: -1, y: 20, opacity: 0 }}
+            animate={{ rotate: -1, y: 0, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 300, delay: 0.1 }}
+            style={{
+              padding: '20px',
+              background: colors.primary,
+              border: `6px solid ${colors.border}`,
+              boxShadow: shadows.brutal,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+              <Trophy className="h-5 w-5" />
+              <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, fontSize: '12px', textTransform: 'uppercase' }}>
+                TOTAL WINNINGS
+              </span>
+            </div>
+            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 900, fontSize: 'clamp(28px, 4vw, 36px)', color: colors.dark }}>
+              {totalWinnings} STX
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ rotate: 1, y: 20, opacity: 0 }}
+            animate={{ rotate: 1, y: 0, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 300, delay: 0.2 }}
+            style={{
+              padding: '20px',
+              background: colors.accent,
+              border: `6px solid ${colors.border}`,
+              boxShadow: shadows.brutal,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+              <Flame className="h-5 w-5" />
+              <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, fontSize: '12px', textTransform: 'uppercase' }}>
+                TOTAL WINS
+              </span>
+            </div>
+            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 900, fontSize: 'clamp(28px, 4vw, 36px)', color: colors.dark }}>
+              {wins.length}
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ rotate: -1, y: 20, opacity: 0 }}
+            animate={{ rotate: 0, y: 0, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 300, delay: 0.3 }}
+            style={{
+              padding: '20px',
+              background: colors.white,
+              border: `6px solid ${colors.border}`,
+              boxShadow: shadows.brutal,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+              <Clock className="h-5 w-5" />
+              <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, fontSize: '12px', textTransform: 'uppercase' }}>
+                CLAIMABLE
+              </span>
+            </div>
+            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 900, fontSize: 'clamp(28px, 4vw, 36px)', color: colors.dark }}>
+              {wins.filter(w => !w.claimed).length}
+            </div>
+          </motion.div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className={`${brutal} bg-green-200 p-4`}>
-            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider"><Trophy className="h-4 w-4"/> Total Winnings</div>
-            <div className="text-2xl font-black">{totalWinnings} STX</div>
-          </div>
-          <div className={`${brutal} bg-blue-200 p-4`}>
-            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider"><Wallet className="h-4 w-4"/> Address</div>
-            <div className="text-sm font-mono break-all">{address || '—'}</div>
-          </div>
-          <div className={`${brutal} bg-white p-4`}>
-            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider"><Clock className="h-4 w-4"/> Network Height</div>
-            <div className="text-xl font-black">{heightQ.data ?? 0}</div>
-          </div>
+        {/* Filter Buttons */}
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', flexWrap: 'wrap' }}>
+          <NeoButton
+            variant={filter === 'claimable' ? 'primary' : 'secondary'}
+            size="md"
+            onClick={() => setFilter('claimable')}
+          >
+            CLAIMABLE ({wins.filter(w => !w.claimed).length})
+          </NeoButton>
+          <NeoButton
+            variant={filter === 'claimed' ? 'primary' : 'secondary'}
+            size="md"
+            onClick={() => setFilter('claimed')}
+          >
+            CLAIMED ({wins.filter(w => w.claimed).length})
+          </NeoButton>
+          <NeoButton
+            variant={filter === 'all' ? 'primary' : 'secondary'}
+            size="md"
+            onClick={() => setFilter('all')}
+          >
+            ALL ({wins.length})
+          </NeoButton>
         </div>
 
-        <div className="mb-4 flex items-center gap-2">
-          <button className={`${brutal} px-3 py-2 ${filter === 'claimable' ? 'bg-black text-white' : 'bg-white hover:bg-zinc-200'}`} onClick={() => setFilter('claimable')}>Claimable</button>
-          <button className={`${brutal} px-3 py-2 ${filter === 'claimed' ? 'bg-black text-white' : 'bg-white hover:bg-zinc-200'}`} onClick={() => setFilter('claimed')}>Claimed</button>
-          <button className={`${brutal} px-3 py-2 ${filter === 'all' ? 'bg-black text-white' : 'bg-white hover:bg-zinc-200'}`} onClick={() => setFilter('all')}>All</button>
-        </div>
-
+        {/* Loading State */}
         {loading && (
-          <div>
-            <div className="mb-2 text-xs font-black uppercase tracking-wider">Loading your wins…</div>
+          <div style={{ display: 'grid', gap: '16px' }}>
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className={`${brutal} bg-white p-4 mb-2`}>
-                <div className="skeleton h-4 w-40 mb-2" />
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  {Array.from({ length: 4 }).map((_, j) => (
-                    <div key={j} className={`${brutal} bg-white p-2`}>
-                      <div className="skeleton h-3 w-16 mb-2" />
-                      <div className="skeleton h-5 w-24" />
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: [0.4, 0.7, 0.4], y: 0 }}
+                transition={{ repeat: Infinity, duration: 1.5, delay: i * 0.1 }}
+                style={{
+                  height: '200px',
+                  background: colors.white,
+                  border: `6px solid ${colors.border}`,
+                  boxShadow: shadows.brutal,
+                }}
+              />
             ))}
           </div>
         )}
+
+        {/* Empty State */}
         {!loading && filtered.length === 0 && (
-          <div className={`${brutal} bg-white p-6 text-center`}>
-            <div className="text-lg font-black mb-1">No wins yet</div>
-            <div className="text-sm opacity-70">Solve more puzzles to win prizes!</div>
-          </div>
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 300 }}
+            style={{
+              padding: '60px 40px',
+              background: colors.white,
+              border: `6px solid ${colors.border}`,
+              boxShadow: shadows.brutal,
+              textAlign: 'center',
+            }}
+          >
+            <Trophy className="h-16 w-16 mx-auto mb-4" style={{ color: colors.dark, opacity: 0.3 }} />
+            <h2
+              style={{
+                fontFamily: "'Space Grotesk', sans-serif",
+                fontWeight: 900,
+                fontSize: '28px',
+                textTransform: 'uppercase',
+                marginBottom: '12px',
+                color: colors.dark,
+              }}
+            >
+              {filter === 'claimable' ? 'NO CLAIMABLE WINS' : filter === 'claimed' ? 'NO CLAIMED WINS' : 'NO WINS YET'}
+            </h2>
+            <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '14px', opacity: 0.7, marginBottom: '24px' }}>
+              Solve more puzzles to win prizes!
+            </p>
+            <NeoButton variant="primary" size="lg" onClick={() => window.location.href = '/'}>
+              <Flame className="h-5 w-5 inline mr-2" />
+              START SOLVING
+            </NeoButton>
+          </motion.div>
         )}
 
-        <div className="grid gap-3">
-          {filtered.map((w) => {
+        {/* Wins Grid */}
+        <div style={{ display: 'grid', gap: '16px' }}>
+          {filtered.map((w, index) => {
             const dateStr = w.winTimestampSec ? new Date(w.winTimestampSec * 1000).toLocaleString() : `After block ${String(w.info.deadline)}`;
             const prizeStr = microToStx(w.netPrize);
-            const status = w.claimed ? 'Claimed' : 'Ready to claim';
             const canClaimNow = !w.claimed && (heightQ.data ?? 0) > Number(w.info.deadline);
+            const difficultyColor = getDifficultyColor(w.info.difficulty?.toLowerCase() as any);
+            const rotation = index % 3 === 0 ? -1 : index % 3 === 1 ? 1 : 0;
+
             return (
-              <div key={w.id} className={`${brutal} bg-white/85 backdrop-blur p-4 grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3`}>
-                <div>
-                  <div className="flex items-center justify-between">
-                    <div className="text-xs font-black uppercase tracking-wider">#{w.id} • {(w.info.difficulty || '').toUpperCase()}</div>
-                    <div className={`text-xs font-black ${w.claimed ? 'text-green-700' : 'text-blue-700'}`}>{status}</div>
+              <motion.div
+                key={w.id}
+                initial={{ rotate: rotation, y: 20, opacity: 0 }}
+                animate={{ rotate: rotation, y: 0, opacity: 1 }}
+                whileHover={{ rotate: 0, y: -4, boxShadow: shadows.brutalLarge }}
+                transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                style={{
+                  padding: '24px',
+                  background: w.claimed ? colors.white : colors.primary,
+                  border: `${w.claimed ? '4px' : '6px'} solid ${colors.border}`,
+                  boxShadow: w.claimed ? shadows.brutalSmall : shadows.brutal,
+                }}
+              >
+                {/* Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <NeoBadge color={difficultyColor} size="lg">
+                      #{w.id}
+                    </NeoBadge>
+                    <div>
+                      <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, fontSize: '12px', textTransform: 'uppercase', opacity: 0.7 }}>
+                        {w.info.difficulty?.toUpperCase()}
+                      </div>
+                      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, fontSize: '14px' }}>
+                        {dateStr}
+                      </div>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2 text-sm">
-                    <div className={`${brutal} bg-yellow-200 p-2`}>
-                      <div className="flex items-center gap-1 text-[10px] uppercase font-black"><Calendar className="h-3 w-3"/> Date</div>
-                      <div className="font-bold truncate" title={dateStr}>{dateStr}</div>
+                  
+                  {w.claimed ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <CheckCircle2 className="h-6 w-6" style={{ color: colors.success }} />
+                      <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, fontSize: '14px', textTransform: 'uppercase', color: colors.success }}>
+                        CLAIMED
+                      </span>
                     </div>
-                    <div className={`${brutal} bg-blue-200 p-2`}>
-                      <div className="flex items-center gap-1 text-[10px] uppercase font-black"><Clock className="h-3 w-3"/> Your Time</div>
-                      <div className="font-black">{w.solveTimeSec !== undefined ? formatTimeSeconds(w.solveTimeSec) : '—'}</div>
-                    </div>
-                    <div className={`${brutal} bg-green-200 p-2`}>
-                      <div className="flex items-center gap-1 text-[10px] uppercase font-black"><Trophy className="h-3 w-3"/> Prize</div>
-                      <div className="font-black">{prizeStr} STX</div>
-                    </div>
-                    <div className={`${brutal} ${w.claimed ? 'bg-green-200' : 'bg-blue-200'} p-2`}>
-                      <div className="text-[10px] uppercase font-black">Status</div>
-                      <div className="font-black">{status}</div>
-                    </div>
-                  </div>
-                </div>
-                <div className="md:self-center">
-                  {!w.claimed ? (
-                    <button
-                      className={`${brutal} px-4 py-2 ${canClaimNow ? 'bg-black text-white hover:bg-zinc-800' : 'bg-zinc-400 text-white cursor-not-allowed'}`}
-                      onClick={() => { setSelected(w); setClaimOpen(true); }}
-                      disabled={!canClaimNow}
-                    >
-                      Claim Prize
-                    </button>
                   ) : (
-                    <div className={`inline-flex items-center gap-2 text-green-700 font-bold`}><CheckCircle2 className="h-4 w-4"/> Claimed</div>
+                    <NeoBadge color={colors.error} size="md" pulse>
+                      UNCLAIMED
+                    </NeoBadge>
                   )}
                 </div>
-              </div>
+
+                {/* Stats Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '12px', marginBottom: '20px' }}>
+                  <div
+                    style={{
+                      padding: '12px',
+                      background: colors.success,
+                      border: `4px solid ${colors.border}`,
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
+                      <Trophy className="h-4 w-4" />
+                      <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, fontSize: '10px', textTransform: 'uppercase' }}>
+                        PRIZE
+                      </span>
+                    </div>
+                    <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 900, fontSize: '18px', color: colors.dark }}>
+                      {prizeStr} STX
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      padding: '12px',
+                      background: colors.accent,
+                      border: `4px solid ${colors.border}`,
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
+                      <Clock className="h-4 w-4" />
+                      <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, fontSize: '10px', textTransform: 'uppercase' }}>
+                        TIME
+                      </span>
+                    </div>
+                    <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 900, fontSize: '18px', color: colors.dark }}>
+                      {w.solveTimeSec !== undefined ? formatTimeSeconds(w.solveTimeSec) : '—'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Button */}
+                {!w.claimed && (
+                  <NeoButton
+                    variant={canClaimNow ? 'primary' : 'secondary'}
+                    size="lg"
+                    onClick={() => { setSelected(w); setClaimOpen(true); }}
+                    disabled={!canClaimNow}
+                    style={{ width: '100%' }}
+                  >
+                    <Trophy className="h-5 w-5 inline mr-2" />
+                    {canClaimNow ? 'CLAIM PRIZE NOW' : 'NOT YET CLAIMABLE'}
+                  </NeoButton>
+                )}
+              </motion.div>
             );
           })}
         </div>
       </div>
 
+      {/* Celebration Modal */}
       <AnimatePresence>
         {celebrate && (
-          <motion.div className="fixed inset-0 z-50 flex items-center justify-center"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <div className="absolute inset-0 bg-black/20" />
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <div
+              className="absolute inset-0"
+              style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }}
+              onClick={() => setCelebrate(false)}
+            />
+
+            {/* Confetti */}
             <div className="pointer-events-none absolute inset-0 overflow-hidden">
               {Array.from({ length: 70 }).map((_, i) => (
-                <motion.div key={i}
-                  className="absolute w-2 h-2"
-                  style={{ left: `${(i * 17) % 100}%`, top: '-10px', background: i % 3 === 0 ? '#f59e0b' : i % 3 === 1 ? '#ef4444' : '#10b981', boxShadow: '2px 2px 0 #000' }}
+                <motion.div
+                  key={i}
+                  className="absolute"
+                  style={{
+                    left: `${(i * 7) % 100}%`,
+                    top: '-10px',
+                    width: '16px',
+                    height: '16px',
+                    background: i % 3 === 0 ? colors.primary : i % 3 === 1 ? colors.error : colors.success,
+                    border: `3px solid ${colors.border}`,
+                  }}
                   initial={{ y: -20, rotate: 0, opacity: 0 }}
-                  animate={{ y: ['-10%', '110%'], rotate: [0, 360], opacity: [0, 1, 1, 0] }}
-                  transition={{ duration: 2.4 + (i % 10) * 0.18, delay: (i % 10) * 0.06 }}
+                  animate={{ y: ['0vh', '110vh'], rotate: [0, 720], opacity: [0, 1, 1, 0] }}
+                  transition={{ duration: 2.5 + (i % 10) * 0.2, delay: (i % 10) * 0.05 }}
                 />
               ))}
             </div>
-            <motion.div className={`relative bg-white p-5 ${brutal} max-w-sm w-full mx-3`}
-              initial={{ scale: 0.9, rotate: -2 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 20 }}>
-              <div className="flex items-center gap-3 mb-3">
-                <PartyPopper className="h-6 w-6"/>
-                <div className="text-lg font-black">Prize claimed!</div>
-                <button className={`${brutal} bg-zinc-200 px-2 py-1 ml-auto`} onClick={() => setCelebrate(false)}><X className="h-4 w-4"/></button>
+
+            <motion.div
+              initial={{ scale: 0.8, rotate: -5 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+              style={{
+                position: 'relative',
+                maxWidth: '500px',
+                width: '90%',
+                padding: '40px',
+                background: colors.success,
+                border: `8px solid ${colors.border}`,
+                boxShadow: shadows.brutalLarge,
+              }}
+            >
+              <button
+                onClick={() => setCelebrate(false)}
+                style={{
+                  position: 'absolute',
+                  top: '16px',
+                  right: '16px',
+                  padding: '8px',
+                  background: colors.dark,
+                  border: `4px solid ${colors.border}`,
+                  cursor: 'pointer',
+                }}
+              >
+                <X className="h-6 w-6" style={{ color: colors.white }} />
+              </button>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
+                <PartyPopper className="h-12 w-12" style={{ color: colors.dark }} />
+                <h2
+                  style={{
+                    fontFamily: "'Space Grotesk', sans-serif",
+                    fontWeight: 900,
+                    fontSize: 'clamp(32px, 5vw, 40px)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '-0.02em',
+                    color: colors.dark,
+                    textShadow: `4px 4px 0px ${colors.border}`,
+                  }}
+                >
+                  CLAIMED!
+                </h2>
               </div>
-              <div className="flex items-center justify-between gap-2">
-                <div className="text-sm opacity-70">{lastClaimAmountStx ? `${lastClaimAmountStx} STX` : ''}</div>
-                <ShareButton type="win" data={{ amountStx: lastClaimAmountStx || undefined }} url={typeof window !== 'undefined' ? window.location.origin : undefined} />
+
+              <div
+                style={{
+                  padding: '20px',
+                  background: colors.dark,
+                  border: `4px solid ${colors.border}`,
+                  marginBottom: '24px',
+                }}
+              >
+                <div
+                  style={{
+                    fontFamily: "'Inter', sans-serif",
+                    fontWeight: 700,
+                    fontSize: '14px',
+                    textTransform: 'uppercase',
+                    color: colors.white,
+                    marginBottom: '8px',
+                  }}
+                >
+                  Prize Amount
+                </div>
+                <div
+                  style={{
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontWeight: 900,
+                    fontSize: 'clamp(28px, 5vw, 36px)',
+                    color: colors.primary,
+                    textShadow: `0 0 10px ${colors.primary}`,
+                  }}
+                >
+                  {lastClaimAmountStx} STX
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                <ShareButton
+                  type="win"
+                  data={{ amountStx: lastClaimAmountStx || undefined }}
+                  url={typeof window !== 'undefined' ? window.location.origin : undefined}
+                />
+                <NeoButton variant="primary" size="lg" onClick={() => setCelebrate(false)}>
+                  AWESOME!
+                </NeoButton>
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
+      {/* Claim Prize Modal */}
       <ClaimPrizeModal
-        open={claimOpen}
+        isOpen={claimOpen}
         onClose={() => { setClaimOpen(false); setSelected(null); }}
         puzzleId={selected?.id ?? 0}
         difficulty={selected?.info?.difficulty || ''}
@@ -294,7 +583,6 @@ export default function MyWins() {
           }
           setSelected(null);
           setCelebrate(true);
-          setTimeout(() => setCelebrate(false), 3000);
         }}
       />
     </div>

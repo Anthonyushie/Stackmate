@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useQueries, useQuery } from '@tanstack/react-query'
-import { Calendar, CheckCircle2, Clock, Coins, Flame, Hourglass, Medal, Percent, Star, Trophy, Zap } from 'lucide-react'
-import WalletConnect from '../components/WalletConnect'
+import { motion } from 'framer-motion'
+import { Calendar, CheckCircle2, Clock, Coins, Flame, Hourglass, Medal, Percent, Star, Trophy, Zap, ChevronLeft, ChevronRight } from 'lucide-react'
 import useWallet from '../hooks/useWallet'
 import { fetchCallReadOnlyFunction, standardPrincipalCV, uintCV, ClarityType } from '@stacks/transactions'
 import { microToStx, type NetworkName, getNetwork } from '../lib/stacks'
@@ -9,8 +9,10 @@ import { getPuzzleInfo, type PuzzleInfo } from '../lib/contracts'
 import { ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Area, AreaChart } from 'recharts'
 import { useSearchParams } from 'react-router-dom'
 import ProfileStatsSkeleton from '../components/skeletons/ProfileStatsSkeleton'
-
-const brutal = 'rounded-none border-[3px] border-black shadow-[8px_8px_0_#000]'
+import Header from '../components/Header'
+import { colors, shadows, getDifficultyColor } from '../styles/neo-brutal-theme'
+import NeoButton from '../components/neo/NeoButton'
+import NeoBadge from '../components/neo/NeoBadge'
 
 function getContractIds(network: NetworkName) {
   const id = network === 'testnet' ? (import.meta as any).env?.VITE_CONTRACT_TESTNET : (import.meta as any).env?.VITE_CONTRACT_MAINNET
@@ -247,143 +249,428 @@ export default function Profile() {
     const tenSolved = solvedRows.length >= 10
     const marathon = totalEntries >= 50
     return [
-      { key: 'first', label: 'First Win', achieved: firstWin, icon: <Trophy className="h-4 w-4"/>, desc: 'Win your first puzzle' },
-      { key: 'ten', label: '10 Puzzles Solved', achieved: tenSolved, icon: <Medal className="h-4 w-4"/>, desc: 'Solve 10 puzzles' },
-      { key: 'speed', label: 'Speed Demon', achieved: speedDemon, icon: <Zap className="h-4 w-4"/>, desc: 'Solve in under 1 min' },
-      { key: 'streak', label: 'Consistent', achieved: consistent, icon: <Flame className="h-4 w-4"/>, desc: '5 day streak' },
-      { key: 'marathon', label: 'Marathoner', achieved: marathon, icon: <Hourglass className="h-4 w-4"/>, desc: 'Enter 50 puzzles' },
-      { key: 'bank', label: 'Bankroller', achieved: Number(totalWinningsStx) >= 100, icon: <Coins className="h-4 w-4"/>, desc: 'Win 100+ STX' },
+      { key: 'first', label: 'First Win', achieved: firstWin, icon: Trophy, desc: 'Win your first puzzle' },
+      { key: 'ten', label: '10 Puzzles', achieved: tenSolved, icon: Medal, desc: 'Solve 10 puzzles' },
+      { key: 'speed', label: 'Speed Demon', achieved: speedDemon, icon: Zap, desc: 'Solve in under 1 min' },
+      { key: 'streak', label: 'Consistent', achieved: consistent, icon: Flame, desc: '5 day streak' },
+      { key: 'marathon', label: 'Marathoner', achieved: marathon, icon: Hourglass, desc: 'Enter 50 puzzles' },
+      { key: 'bank', label: 'Bankroller', achieved: Number(totalWinningsStx) >= 100, icon: Coins, desc: 'Win 100+ STX' },
     ]
   }, [statsQ.data, solvedTimes, currentStreak, solvedRows])
 
-  const bgGrad = 'from-yellow-200 via-rose-200 to-blue-200 dark:from-zinc-900 dark:via-zinc-800 dark:to-zinc-900'
-
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${bgGrad} text-black dark:text-white relative overflow-hidden`}>
-      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        <header className="flex items-center justify-between mb-6">
-          <div className={`${brutal} bg-white/80 dark:bg-zinc-900/60 backdrop-blur px-4 py-2 text-xl font-black tracking-tight`}>Profile</div>
-          <WalletConnect />
-        </header>
+    <div style={{ minHeight: '100vh', background: colors.light, position: 'relative', overflow: 'hidden' }}>
+      <div className="grain-texture" style={{ position: 'absolute', inset: 0, opacity: 0.03, pointerEvents: 'none' }} />
+      
+      <div style={{ position: 'relative', zIndex: 10, maxWidth: '1400px', margin: '0 auto', padding: '32px 20px' }}>
+        <Header />
 
-        {loadingAny && (
-          <ProfileStatsSkeleton />
-        )}
+        {/* Page Title */}
+        <motion.div
+          initial={{ rotate: -1, y: -10, opacity: 0 }}
+          animate={{ rotate: 1, y: 0, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 300 }}
+          style={{
+            display: 'inline-block',
+            padding: '16px 32px',
+            background: colors.accent,
+            border: `6px solid ${colors.border}`,
+            boxShadow: shadows.brutal,
+            marginBottom: '24px',
+          }}
+        >
+          <h1
+            style={{
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontWeight: 900,
+              fontSize: 'clamp(32px, 5vw, 48px)',
+              textTransform: 'uppercase',
+              letterSpacing: '-0.02em',
+              color: colors.dark,
+              margin: 0,
+            }}
+          >
+            PROFILE
+          </h1>
+          {paramAddress && (
+            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, fontSize: '12px', marginTop: '8px', opacity: 0.7 }}>
+              Viewing: {paramAddress.slice(0, 8)}...{paramAddress.slice(-6)}
+            </div>
+          )}
+        </motion.div>
+
+        {loadingAny && <ProfileStatsSkeleton />}
+        
         {!loadingAny && (
-        <>
-        <section className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className={`${brutal} bg-white/85 p-4`}>
-            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider"><Star className="h-4 w-4"/> Total Entered</div>
-            <div className="text-2xl font-black">{String(statsQ.data?.totalEntries ?? 0n)}</div>
-          </div>
-          <div className={`${brutal} bg-green-200 p-4`}>
-            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider"><Trophy className="h-4 w-4"/> Total Solved</div>
-            <div className="text-2xl font-black">{String(solvedRows.length)}</div>
-          </div>
-          <div className={`${brutal} bg-blue-200 p-4`}>
-            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider"><Percent className="h-4 w-4"/> Win Rate</div>
-            <div className="text-2xl font-black">{winRatePct}%</div>
-          </div>
-          <div className={`${brutal} bg-yellow-200 p-4`}>
-            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider"><Coins className="h-4 w-4"/> Total STX Won</div>
-            <div className="text-2xl font-black">{microToStx(statsQ.data?.totalWinnings ?? 0n)} STX</div>
-          </div>
-          <div className={`${brutal} bg-pink-200 p-4`}>
-            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider"><Clock className="h-4 w-4"/> Avg Solve Time</div>
-            <div className="text-2xl font-black">{avgSolve ? formatTime(avgSolve) : '—'}</div>
-          </div>
-          <div className={`${brutal} bg-white p-4`}>
-            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider"><Medal className="h-4 w-4"/> Best Solve Time</div>
-            <div className="text-2xl font-black">{bestSolve ? formatTime(bestSolve) : '—'}</div>
-          </div>
-          <div className={`${brutal} bg-orange-200 p-4 md:col-span-3`}>
-            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider"><Flame className="h-4 w-4"/> Current Streak</div>
-            <div className="text-2xl font-black">{currentStreak} day{currentStreak === 1 ? '' : 's'}</div>
-          </div>
-        </section>
+          <>
+            {/* Stats Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '32px' }}>
+              {[
+                { icon: Star, label: 'Total Entered', value: String(statsQ.data?.totalEntries ?? 0n), color: colors.white, rotation: -1 },
+                { icon: Trophy, label: 'Total Solved', value: String(solvedRows.length), color: colors.success, rotation: 1 },
+                { icon: Percent, label: 'Win Rate', value: `${winRatePct}%`, color: colors.accent, rotation: -1 },
+                { icon: Coins, label: 'Total STX Won', value: `${microToStx(statsQ.data?.totalWinnings ?? 0n)} STX`, color: colors.primary, rotation: 1 },
+                { icon: Clock, label: 'Avg Solve Time', value: avgSolve ? formatTime(avgSolve) : '—', color: colors.secondary, rotation: 0 },
+                { icon: Medal, label: 'Best Solve', value: bestSolve ? formatTime(bestSolve) : '—', color: colors.white, rotation: -1 },
+              ].map((stat, i) => (
+                <motion.div
+                  key={stat.label}
+                  initial={{ rotate: stat.rotation, y: 20, opacity: 0 }}
+                  animate={{ rotate: stat.rotation, y: 0, opacity: 1 }}
+                  whileHover={{ rotate: 0, y: -4, boxShadow: shadows.brutalLarge }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 25, delay: i * 0.05 }}
+                  style={{
+                    padding: '20px',
+                    background: stat.color,
+                    border: `5px solid ${colors.border}`,
+                    boxShadow: shadows.brutal,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <stat.icon className="h-5 w-5" style={{ color: colors.dark }} />
+                    <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, fontSize: '11px', textTransform: 'uppercase', color: colors.dark }}>
+                      {stat.label}
+                    </span>
+                  </div>
+                  <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 900, fontSize: 'clamp(24px, 3vw, 32px)', color: colors.dark }}>
+                    {stat.value}
+                  </div>
+                </motion.div>
+              ))}
+            </div>
 
-        <section className="mb-10">
-          <div className="flex items-center gap-2 mb-2"><Percent className="h-4 w-4"/><div className="text-xs font-black uppercase tracking-wider">Win Rate Over Time</div></div>
-          <div className={`${brutal} bg-white/85 backdrop-blur p-3 h-64`}>
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={dailyData} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
-                <defs>
-                  <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#22c55e" stopOpacity={0.6}/>
-                    <stop offset="95%" stopColor="#22c55e" stopOpacity={0.05}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#00000020" />
-                <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} />
-                <Tooltip formatter={(v: any, n: any) => n === 'rate' ? [`${v}%`, 'Win Rate'] : v} />
-                <Area type="monotone" dataKey="rate" stroke="#16a34a" fillOpacity={1} fill="url(#grad)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </section>
+            {/* Current Streak - Full Width */}
+            <motion.div
+              initial={{ rotate: -1, y: 20, opacity: 0 }}
+              animate={{ rotate: -1, y: 0, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 300, delay: 0.3 }}
+              style={{
+                padding: '24px',
+                background: colors.error,
+                border: `6px solid ${colors.border}`,
+                boxShadow: shadows.brutal,
+                marginBottom: '32px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                <Flame className="h-6 w-6" style={{ color: colors.white }} />
+                <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, fontSize: '14px', textTransform: 'uppercase', color: colors.white }}>
+                  CURRENT STREAK
+                </span>
+              </div>
+              <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 900, fontSize: 'clamp(40px, 6vw, 56px)', color: colors.white, textShadow: `4px 4px 0px ${colors.border}` }}>
+                {currentStreak} DAY{currentStreak === 1 ? '' : 'S'}
+              </div>
+            </motion.div>
 
-        <section className="mb-10">
-          <div className="flex items-center gap-2 mb-2"><Medal className="h-4 w-4"/><div className="text-xs font-black uppercase tracking-wider">Achievements</div></div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {achievements.map((a) => (
-              <div key={a.key} className={`${brutal} ${a.achieved ? 'bg-green-200' : 'bg-white'} p-3 flex items-start gap-3`}>
-                <div className={`h-8 w-8 ${brutal} flex items-center justify-center ${a.achieved ? 'bg-black text-white' : 'bg-zinc-200 text-black'}`}>{a.icon}</div>
-                <div>
-                  <div className="font-black">{a.label}</div>
-                  <div className="text-xs opacity-70">{a.desc}</div>
+            {/* Achievements Section */}
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 300, delay: 0.4 }}
+              style={{ marginBottom: '32px' }}
+            >
+              <div
+                style={{
+                  display: 'inline-block',
+                  padding: '12px 24px',
+                  background: colors.primary,
+                  border: `5px solid ${colors.border}`,
+                  boxShadow: shadows.brutalSmall,
+                  marginBottom: '16px',
+                }}
+              >
+                <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 900, fontSize: '20px', textTransform: 'uppercase', margin: 0, color: colors.dark }}>
+                  ACHIEVEMENTS
+                </h2>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '12px' }}>
+                {achievements.map((a, i) => {
+                  const IconComponent = a.icon;
+                  return (
+                    <motion.div
+                      key={a.key}
+                      initial={{ scale: 0.9, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ type: 'spring', stiffness: 300, delay: 0.45 + i * 0.05 }}
+                      style={{
+                        padding: '16px',
+                        background: a.achieved ? colors.success : colors.white,
+                        border: `4px solid ${colors.border}`,
+                        boxShadow: shadows.brutalSmall,
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '12px',
+                        opacity: a.achieved ? 1 : 0.6,
+                      }}
+                    >
+                      <div
+                        style={{
+                          minWidth: '40px',
+                          height: '40px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          background: a.achieved ? colors.dark : colors.white,
+                          border: `3px solid ${colors.border}`,
+                        }}
+                      >
+                        <IconComponent className="h-5 w-5" style={{ color: a.achieved ? colors.primary : colors.dark }} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, fontSize: '14px', color: colors.dark }}>
+                          {a.label}
+                        </div>
+                        <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '12px', opacity: 0.7, marginTop: '2px' }}>
+                          {a.desc}
+                        </div>
+                      </div>
+                      {a.achieved && (
+                        <CheckCircle2 className="h-5 w-5" style={{ color: colors.dark }} />
+                      )}
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </motion.div>
+
+            {/* Win Rate Chart */}
+            <motion.div
+              initial={{ rotate: 1, y: 20, opacity: 0 }}
+              animate={{ rotate: 1, y: 0, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 300, delay: 0.5 }}
+              style={{ marginBottom: '32px' }}
+            >
+              <div
+                style={{
+                  display: 'inline-block',
+                  padding: '12px 24px',
+                  background: colors.secondary,
+                  border: `5px solid ${colors.border}`,
+                  boxShadow: shadows.brutalSmall,
+                  marginBottom: '16px',
+                }}
+              >
+                <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 900, fontSize: '20px', textTransform: 'uppercase', margin: 0, color: colors.white }}>
+                  WIN RATE OVER TIME
+                </h2>
+              </div>
+
+              <div
+                style={{
+                  padding: '20px',
+                  background: colors.white,
+                  border: `6px solid ${colors.border}`,
+                  boxShadow: shadows.brutal,
+                  height: '300px',
+                }}
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={dailyData} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
+                    <defs>
+                      <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={colors.success} stopOpacity={0.8}/>
+                        <stop offset="95%" stopColor={colors.success} stopOpacity={0.1}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="0" stroke={colors.border} strokeWidth={2} />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fontSize: 12, fontFamily: "'JetBrains Mono', monospace", fontWeight: 700 }}
+                      stroke={colors.border}
+                      strokeWidth={2}
+                    />
+                    <YAxis
+                      domain={[0, 100]}
+                      tick={{ fontSize: 12, fontFamily: "'JetBrains Mono', monospace", fontWeight: 700 }}
+                      stroke={colors.border}
+                      strokeWidth={2}
+                    />
+                    <Tooltip
+                      formatter={(v: any, n: any) => n === 'rate' ? [`${v}%`, 'Win Rate'] : v}
+                      contentStyle={{
+                        background: colors.white,
+                        border: `4px solid ${colors.border}`,
+                        borderRadius: 0,
+                        fontFamily: "'Inter', sans-serif",
+                        fontWeight: 700,
+                      }}
+                    />
+                    <Area
+                      type="stepAfter"
+                      dataKey="rate"
+                      stroke={colors.success}
+                      strokeWidth={4}
+                      fillOpacity={1}
+                      fill="url(#grad)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </motion.div>
+
+            {/* History Section */}
+            <motion.div
+              initial={{ rotate: -1, y: 20, opacity: 0 }}
+              animate={{ rotate: 0, y: 0, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 300, delay: 0.6 }}
+            >
+              <div
+                style={{
+                  display: 'inline-block',
+                  padding: '12px 24px',
+                  background: colors.primary,
+                  border: `5px solid ${colors.border}`,
+                  boxShadow: shadows.brutalSmall,
+                  marginBottom: '16px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <Calendar className="h-5 w-5" />
+                  <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 900, fontSize: '20px', textTransform: 'uppercase', margin: 0, color: colors.dark }}>
+                    HISTORY
+                  </h2>
+                  <NeoBadge color={colors.dark} size="sm">
+                    {rows.length}
+                  </NeoBadge>
                 </div>
-                <div className="ml-auto self-center">{a.achieved ? <CheckCircle2 className="h-5 w-5 text-green-700"/> : <Clock className="h-5 w-5 opacity-50"/>}</div>
               </div>
-            ))}
-          </div>
-        </section>
 
-        <section>
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2"><Calendar className="h-4 w-4"/><div className="text-xs font-black uppercase tracking-wider">History</div></div>
-            <div className="text-xs opacity-70">{rows.length} entries</div>
-          </div>
-          <div className={`${brutal} bg-white/90 backdrop-blur overflow-hidden`}>
-            <div className="overflow-auto">
-              <table className="min-w-full text-sm">
-                <thead className="bg-zinc-100">
-                  <tr>
-                    <th className="text-left p-2 cursor-pointer" onClick={() => { setSortBy('date'); setSortDir(sortBy === 'date' && sortDir === 'desc' ? 'asc' : 'desc') }}>Date</th>
-                    <th className="text-left p-2 cursor-pointer" onClick={() => { setSortBy('difficulty'); setSortDir(sortBy === 'difficulty' && sortDir === 'desc' ? 'asc' : 'desc') }}>Difficulty</th>
-                    <th className="text-left p-2 cursor-pointer" onClick={() => { setSortBy('time'); setSortDir(sortBy === 'time' && sortDir === 'desc' ? 'asc' : 'desc') }}>Your Time</th>
-                    <th className="text-left p-2 cursor-pointer" onClick={() => { setSortBy('result'); setSortDir(sortBy === 'result' && sortDir === 'desc' ? 'asc' : 'desc') }}>Result</th>
-                    <th className="text-left p-2 cursor-pointer" onClick={() => { setSortBy('prize'); setSortDir(sortBy === 'prize' && sortDir === 'desc' ? 'asc' : 'desc') }}>Prize</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pagedRows.map((r) => (
-                    <tr key={r.id} className="border-t border-zinc-200">
-                      <td className="p-2 whitespace-nowrap">{r.date ? r.date.toLocaleString() : '—'}</td>
-                      <td className="p-2 whitespace-nowrap">{r.difficulty || '—'}</td>
-                      <td className="p-2 whitespace-nowrap">{Number(r.yourTime) ? `${formatTime(Number(r.yourTime))}` : '—'}</td>
-                      <td className="p-2 whitespace-nowrap">{r.result}</td>
-                      <td className="p-2 whitespace-nowrap">{r.prizeMicro ? `${microToStx(r.prizeMicro)} STX` : '—'}</td>
-                    </tr>
-                  ))}
-                  {pagedRows.length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="p-3 text-center text-xs">No entries yet</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-            <div className="flex items-center justify-between p-2 border-t border-zinc-200 text-xs">
-              <div>Page {page} of {totalPages}</div>
-              <div className="flex items-center gap-2">
-                <button className={`${brutal} px-2 py-1 bg-white disabled:opacity-50`} disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p-1))}>Prev</button>
-                <button className={`${brutal} px-2 py-1 bg-white disabled:opacity-50`} disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p+1))}>Next</button>
+              {/* Sort Buttons */}
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+                {(['date', 'difficulty', 'time', 'result', 'prize'] as const).map((sort) => (
+                  <NeoButton
+                    key={sort}
+                    variant={sortBy === sort ? 'primary' : 'secondary'}
+                    size="sm"
+                    onClick={() => {
+                      if (sortBy === sort) setSortDir(sortDir === 'desc' ? 'asc' : 'desc');
+                      else setSortBy(sort);
+                    }}
+                  >
+                    {sort.toUpperCase()} {sortBy === sort && (sortDir === 'desc' ? '↓' : '↑')}
+                  </NeoButton>
+                ))}
               </div>
-            </div>
-          </div>
-        </section>
-        </>
+
+              {/* History Table */}
+              <div
+                style={{
+                  background: colors.white,
+                  border: `6px solid ${colors.border}`,
+                  boxShadow: shadows.brutal,
+                  overflow: 'hidden',
+                }}
+              >
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead
+                      style={{
+                        background: colors.dark,
+                        color: colors.white,
+                      }}
+                    >
+                      <tr>
+                        <th style={{ padding: '12px', textAlign: 'left', fontFamily: "'Inter', sans-serif", fontWeight: 900, fontSize: '12px', textTransform: 'uppercase', borderRight: `2px solid ${colors.border}` }}>Date</th>
+                        <th style={{ padding: '12px', textAlign: 'left', fontFamily: "'Inter', sans-serif", fontWeight: 900, fontSize: '12px', textTransform: 'uppercase', borderRight: `2px solid ${colors.border}` }}>Difficulty</th>
+                        <th style={{ padding: '12px', textAlign: 'left', fontFamily: "'Inter', sans-serif", fontWeight: 900, fontSize: '12px', textTransform: 'uppercase', borderRight: `2px solid ${colors.border}` }}>Time</th>
+                        <th style={{ padding: '12px', textAlign: 'left', fontFamily: "'Inter', sans-serif", fontWeight: 900, fontSize: '12px', textTransform: 'uppercase', borderRight: `2px solid ${colors.border}` }}>Result</th>
+                        <th style={{ padding: '12px', textAlign: 'right', fontFamily: "'Inter', sans-serif", fontWeight: 900, fontSize: '12px', textTransform: 'uppercase' }}>Prize</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pagedRows.map((r, i) => {
+                        const rowBg = i % 2 === 0 ? colors.white : '#f5f5f5';
+                        const resultColor = r.result === 'Won' ? colors.success : r.result === 'Solved' ? colors.accent : colors.error;
+                        return (
+                          <tr
+                            key={r.id}
+                            style={{
+                              background: rowBg,
+                              borderTop: `2px solid ${colors.border}`,
+                            }}
+                          >
+                            <td style={{ padding: '12px', fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', borderRight: `1px solid ${colors.border}` }}>
+                              {r.date ? r.date.toLocaleString() : '—'}
+                            </td>
+                            <td style={{ padding: '12px', borderRight: `1px solid ${colors.border}` }}>
+                              <NeoBadge color={getDifficultyColor(r.difficulty?.toLowerCase() as any)} size="sm">
+                                {r.difficulty || '—'}
+                              </NeoBadge>
+                            </td>
+                            <td style={{ padding: '12px', fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, fontSize: '13px', borderRight: `1px solid ${colors.border}` }}>
+                              {Number(r.yourTime) ? formatTime(Number(r.yourTime)) : '—'}
+                            </td>
+                            <td style={{ padding: '12px', borderRight: `1px solid ${colors.border}` }}>
+                              <span
+                                style={{
+                                  padding: '4px 8px',
+                                  background: resultColor,
+                                  border: `2px solid ${colors.border}`,
+                                  fontFamily: "'Inter', sans-serif",
+                                  fontWeight: 900,
+                                  fontSize: '11px',
+                                  textTransform: 'uppercase',
+                                  color: colors.dark,
+                                }}
+                              >
+                                {r.result}
+                              </span>
+                            </td>
+                            <td style={{ padding: '12px', textAlign: 'right', fontFamily: "'JetBrains Mono', monospace", fontWeight: 900, fontSize: '13px' }}>
+                              {r.prizeMicro ? `${microToStx(r.prizeMicro)} STX` : '—'}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {pagedRows.length === 0 && (
+                        <tr>
+                          <td colSpan={5} style={{ padding: '20px', textAlign: 'center', fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '14px', opacity: 0.7 }}>
+                            No entries yet
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Pagination */}
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '16px',
+                    background: colors.dark,
+                    borderTop: `4px solid ${colors.border}`,
+                  }}
+                >
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '12px', color: colors.white }}>
+                    Page {page} of {totalPages}
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <NeoButton
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setPage((p) => Math.max(1, p-1))}
+                      disabled={page <= 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </NeoButton>
+                    <NeoButton
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setPage((p) => Math.min(totalPages, p+1))}
+                      disabled={page >= totalPages}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </NeoButton>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
         )}
       </div>
     </div>
