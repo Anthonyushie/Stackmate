@@ -7,6 +7,7 @@ import { fetchCallReadOnlyFunction, standardPrincipalCV, uintCV, ClarityType } f
 import { microToStx, type NetworkName, getNetwork } from '../lib/stacks'
 import { getPuzzleInfo, type PuzzleInfo } from '../lib/contracts'
 import { ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Area, AreaChart } from 'recharts'
+import { useSearchParams } from 'react-router-dom'
 
 const brutal = 'rounded-none border-[3px] border-black shadow-[8px_8px_0_#000]'
 
@@ -33,7 +34,10 @@ function dayKey(tsSec: number) {
 
 export default function Profile() {
   const { network, getAddress } = useWallet()
-  const address = getAddress() || ''
+  const [params] = useSearchParams()
+  const paramAddress = (params.get('address') || '').trim()
+  const walletAddress = getAddress() || ''
+  const address = paramAddress || walletAddress
   const [sortBy, setSortBy] = useState<'date'|'difficulty'|'time'|'result'|'prize'>('date')
   const [sortDir, setSortDir] = useState<'asc'|'desc'>('desc')
   const [page, setPage] = useState(1)
