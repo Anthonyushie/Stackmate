@@ -12,6 +12,7 @@ import { fetchCallReadOnlyFunction, uintCV, standardPrincipalCV, ClarityType } f
 import { useSubmitSolution } from '../hooks/useContract';
 import ShareButton from '../components/ShareButton';
 import { formatSolveTime } from '../lib/time-utils';
+import ChessBoardSkeleton from '../components/skeletons/ChessBoardSkeleton';
 
 const brutal = 'rounded-none border-[3px] border-black shadow-[8px_8px_0_#000]';
 
@@ -307,7 +308,6 @@ export default function SolvePuzzle() {
 
   // Loading & errors
   if (loading) {
-    const ChessBoardSkeleton = (await import('../components/skeletons/ChessBoardSkeleton')).default;
     return <ChessBoardSkeleton />;
   }
   if (error || !localPuzzle || !info) {
