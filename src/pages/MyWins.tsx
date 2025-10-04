@@ -8,6 +8,7 @@ import { getApiBaseUrl, microToStx, type NetworkName } from '../lib/stacks';
 import { getPuzzleInfo, type PuzzleInfo } from '../lib/contracts';
 import WalletConnect from '../components/WalletConnect';
 import NotificationBell from '../components/NotificationBell';
+import { Link } from 'react-router-dom';
 import ClaimPrizeModal from '../components/ClaimPrizeModal';
 import ShareButton from '../components/ShareButton';
 import { useUserStats } from '../hooks/useBlockchain';
@@ -143,6 +144,7 @@ export default function MyWins() {
             <div className="text-xs opacity-70">Track and claim your prizes</div>
           </div>
           <div className="flex items-center gap-2">
+            <Link to="/leaderboard" className={`${brutal} bg-white/80 hover:bg-white px-3 py-2 text-sm`}>Leaderboard</Link>
             <NotificationBell />
             <WalletConnect />
           </div>

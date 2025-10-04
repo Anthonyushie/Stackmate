@@ -3,6 +3,7 @@ import { useQueries, useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import WalletConnect from '../components/WalletConnect';
 import NotificationBell from '../components/NotificationBell';
+import { Link } from 'react-router-dom';
 import useWallet from '../hooks/useWallet';
 import { useActivePuzzles } from '../hooks/useBlockchain';
 import { getPuzzleInfo, getLeaderboard, type LeaderboardEntry, type PuzzleInfo } from '../lib/contracts';
@@ -215,6 +216,7 @@ export default function Home() {
         <header className="flex items-center justify-between mb-8 sm:mb-12">
           <div className={`${brutal} bg-white/80 dark:bg-zinc-900/60 backdrop-blur px-4 py-2 text-xl font-black tracking-tight`}>Stackmate</div>
           <div className="flex items-center gap-2">
+            <Link to="/leaderboard" className={`${brutal} bg-white/80 hover:bg-white px-3 py-2 text-sm`}>Leaderboard</Link>
             <NotificationBell />
             <WalletConnect />
           </div>
