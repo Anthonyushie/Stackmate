@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import WalletConnect from '../components/WalletConnect';
 import NotificationBell from '../components/NotificationBell';
+import { Link as RouterLink } from 'react-router-dom';
 import useWallet from '../hooks/useWallet';
 import ChessPuzzleSolver from '../components/ChessPuzzleSolver';
 import { getPuzzlesByDifficulty, type Puzzle } from '../lib/puzzles-db';
@@ -41,6 +42,7 @@ export default function PuzzlePage() {
         <header className="flex items-center justify-between mb-6">
           <Link to="/" className={`${brutal} bg-white/80 dark:bg-zinc-900/60 backdrop-blur px-4 py-2 text-xl font-black tracking-tight`}>Stackmate</Link>
           <div className="flex items-center gap-2">
+            <RouterLink to="/leaderboard" className={`${brutal} bg-white/80 hover:bg-white px-3 py-2 text-sm`}>Leaderboard</RouterLink>
             <NotificationBell />
             <WalletConnect />
           </div>
