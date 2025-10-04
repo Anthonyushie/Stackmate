@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CheckCircle2, Loader2, Shield, Trophy, Wallet, X } from 'lucide-react';
+import { CheckCircle2, Loader2, Trophy, X, Sparkles, Coins } from 'lucide-react';
 import { microToStx } from '../lib/stacks';
 import useWallet from '../hooks/useWallet';
 import { useClaimPrize } from '../hooks/useContract';
+import { colors, shadows } from '../styles/neo-brutal-theme';
+import NeoButton from './neo/NeoButton';
 
 export type Difficulty = 'beginner' | 'intermediate' | 'expert';
 
 export interface ClaimPrizeModalProps {
-  open: boolean;
+  isOpen: boolean;
   onClose: () => void;
   puzzleId: number | bigint;
   difficulty: Difficulty | string;
@@ -16,8 +18,6 @@ export interface ClaimPrizeModalProps {
   canClaimNow?: boolean;
   onSuccess?: (txId?: string) => void;
 }
-
-const brutal = 'rounded-none border-[3px] border-black shadow-[8px_8px_0_#000]';
 
 async function toastMsg(message: string, type: 'success' | 'error' | 'info' = 'info') {
   try {
@@ -39,7 +39,7 @@ async function toastMsg(message: string, type: 'success' | 'error' | 'info' = 'i
   }
 }
 
-export default function ClaimPrizeModal({ open, onClose, puzzleId, difficulty, netPrizeMicro, canClaimNow = true, onSuccess }: ClaimPrizeModalProps) {
+export default function ClaimPrizeModal({ isOpen, onClose, puzzleId, difficulty, netPrizeMicro, canClaimNow = true, onSuccess }: ClaimPrizeModalProps) {
   const { balance, refresh } = useWallet();
   const claim = useClaimPrize();
 
@@ -48,17 +48,17 @@ export default function ClaimPrizeModal({ open, onClose, puzzleId, difficulty, n
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!open) {
+    if (!isOpen) {
       setStatus('idle');
       setTxId(null);
       setError(null);
     }
-  }, [open]);
+  }, [isOpen]);
 
   const netStx = useMemo(() => microToStx(netPrizeMicro), [netPrizeMicro]);
   const yourStx = balance?.stx ?? '0';
 
-  const canConfirm = open && canClaimNow && status !== 'requesting_signature' && status !== 'pending' && status !== 'submitted';
+  const canConfirm = isOpen && canClaimNow && status !== 'requesting_signature' && status !== 'pending' && status !== 'submitted';
 
   async function handleConfirm() {
     setError(null);
@@ -95,77 +95,247 @@ export default function ClaimPrizeModal({ open, onClose, puzzleId, difficulty, n
 
   return (
     <AnimatePresence>
-      {open && (
-        <motion.div className="fixed inset-0 z-50 flex items-center justify-center"
+      {isOpen && (
+        <motion.div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
-          <div className="absolute inset-0 bg-black/40" onClick={() => (status === 'idle' ? onClose() : null)} />
+          <div 
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm" 
+            onClick={() => (status === 'idle' ? onClose() : null)} 
+          />
 
           <motion.div
-            initial={{ scale: 0.9, rotate: -1, y: 8, opacity: 0 }}
-            animate={{ scale: 1, rotate: 0, y: 0, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-            className={`relative max-w-lg w-[96%] sm:w-[520px] ${brutal} bg-white/80 dark:bg-zinc-900/70 backdrop-blur p-5`}
+            initial={{ scale: 0.5, rotate: -10, y: 100 }}
+            animate={{ scale: 1, rotate: -2, y: 0 }}
+            exit={{ scale: 0.5, rotate: 10, y: 100 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+            style={{
+              position: 'relative',
+              maxWidth: '600px',
+              width: '100%',
+              background: status === 'success' ? colors.success : colors.primary,
+              border: `8px solid ${colors.border}`,
+              boxShadow: shadows.brutalLarge,
+              padding: '40px',
+            }}
           >
-            <div className="flex items-center justify-between mb-3">
-              <div className="text-xl font-black">Claim Prize</div>
-              <button className={`${brutal} bg-zinc-200 px-2 py-1`} onClick={() => (status === 'idle' ? onClose() : null)}><X className="h-4 w-4"/></button>
+            {/* Close button */}
+            <button
+              onClick={() => (status === 'idle' ? onClose() : null)}
+              style={{
+                position: 'absolute',
+                top: '16px',
+                right: '16px',
+                background: colors.dark,
+                color: colors.white,
+                border: `4px solid ${colors.border}`,
+                padding: '8px',
+                cursor: status === 'idle' ? 'pointer' : 'not-allowed',
+                opacity: status === 'idle' ? 1 : 0.5,
+              }}
+            >
+              <X size={24} strokeWidth={3} />
+            </button>
+
+            {/* Trophy animation */}
+            <motion.div
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ 
+                scale: status === 'success' ? [1, 1.2, 1] : 1, 
+                rotate: status === 'success' ? [0, -10, 10, 0] : 0 
+              }}
+              transition={{ type: 'spring', stiffness: 300, repeat: status === 'success' ? 3 : 0 }}
+              style={{
+                marginBottom: '24px',
+                textAlign: 'center',
+              }}
+            >
+              <Trophy 
+                size={80} 
+                style={{ 
+                  color: status === 'success' ? colors.white : colors.dark,
+                  filter: `drop-shadow(4px 4px 0px ${colors.border})`,
+                }} 
+              />
+            </motion.div>
+
+            {/* Title */}
+            <h2 style={{
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontWeight: 900,
+              fontSize: '48px',
+              textTransform: 'uppercase',
+              letterSpacing: '-0.02em',
+              marginBottom: '32px',
+              color: status === 'success' ? colors.white : colors.dark,
+              textAlign: 'center',
+              lineHeight: 0.9,
+            }}>
+              {status === 'success' ? 'YOU WON!' : 'CLAIM PRIZE'}
+            </h2>
+
+            {/* Prize amount - MASSIVE */}
+            <motion.div
+              animate={status === 'success' ? { 
+                scale: [1, 1.1, 1], 
+                rotate: [0, -2, 2, 0] 
+              } : {}}
+              transition={{ duration: 0.5, type: 'spring', stiffness: 300 }}
+              style={{
+                background: colors.dark,
+                border: `6px solid ${colors.border}`,
+                boxShadow: shadows.brutalLarge,
+                padding: '32px',
+                marginBottom: '24px',
+                textAlign: 'center',
+              }}
+            >
+              <div style={{
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: '14px',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                color: colors.primary,
+                marginBottom: '12px',
+              }}>
+                YOUR PRIZE
+              </div>
+              <div style={{
+                fontFamily: "'Space Grotesk', sans-serif",
+                fontWeight: 900,
+                fontSize: '72px',
+                color: colors.white,
+                lineHeight: 1,
+                textShadow: `6px 6px 0px ${colors.success}`,
+              }}>
+                {netStx}
+              </div>
+              <div style={{
+                fontFamily: "'Space Grotesk', sans-serif",
+                fontWeight: 900,
+                fontSize: '36px',
+                color: colors.success,
+                marginTop: '8px',
+              }}>
+                STX
+              </div>
+            </motion.div>
+
+            {/* Your balance */}
+            <div style={{
+              background: colors.white,
+              border: `4px solid ${colors.border}`,
+              boxShadow: shadows.brutalSmall,
+              padding: '16px',
+              marginBottom: '20px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+              <div style={{
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: '12px',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+              }}>
+                CURRENT BALANCE
+              </div>
+              <div style={{
+                fontFamily: "'Space Grotesk', sans-serif",
+                fontWeight: 900,
+                fontSize: '24px',
+              }}>
+                {yourStx} STX
+              </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className={`${brutal} bg-yellow-200 p-3`}>
-                <div className="text-[10px] uppercase font-black">Difficulty</div>
-                <div className="text-lg font-black">{String(difficulty)}</div>
-              </div>
-              <div className={`${brutal} bg-green-200 p-3`}>
-                <div className="flex items-center gap-2 text-[10px] uppercase font-black"><Trophy className="h-3 w-3"/> Net Prize</div>
-                <div className="text-lg font-black">{netStx} STX</div>
-              </div>
-              <div className={`${brutal} bg-white p-3`}>
-                <div className="flex items-center gap-2 text-[10px] uppercase font-black"><Wallet className="h-3 w-3"/> Your Balance</div>
-                <div className="text-lg font-black">{yourStx} STX</div>
-              </div>
-              <div className={`${brutal} ${canClaimNow ? 'bg-blue-200' : 'bg-zinc-200'} p-3`}>
-                <div className="text-[10px] uppercase font-black">Status</div>
-                <div className="text-lg font-black">{canClaimNow ? 'Ready to claim' : 'Available after deadline'}</div>
-              </div>
-            </div>
-
+            {/* Error message */}
             {error && (
-              <div className={`mt-3 ${brutal} bg-red-200 p-3 text-sm`}>{error}</div>
+              <motion.div
+                initial={{ opacity: 0, x: [-10, 10, -10, 10, 0] }}
+                animate={{ opacity: 1 }}
+                style={{
+                  background: colors.error,
+                  color: colors.white,
+                  border: `4px solid ${colors.border}`,
+                  boxShadow: shadows.brutalSmall,
+                  padding: '16px',
+                  marginBottom: '16px',
+                  fontWeight: 900,
+                }}
+              >
+                {error}
+              </motion.div>
             )}
 
+            {/* Status message */}
             {status !== 'idle' && (
-              <div className={`mt-3 ${brutal} ${status === 'success' ? 'bg-green-200' : status === 'failed' ? 'bg-red-200' : 'bg-blue-200'} p-3 text-sm`}>
-                {status === 'requesting_signature' && 'Waiting for wallet signature…'}
-                {status === 'submitted' && 'Transaction submitted. Waiting for confirmation…'}
-                {status === 'pending' && 'Transaction pending…'}
-                {status === 'success' && (
-                  <span className="inline-flex items-center gap-2"><CheckCircle2 className="h-4 w-4"/> Prize claimed! 🎉</span>
-                )}
-                {status === 'failed' && 'Claim failed. Please try again.'}
+              <div style={{
+                background: status === 'success' ? colors.success : status === 'failed' ? colors.error : colors.accent1,
+                color: status === 'success' || status === 'failed' ? colors.white : colors.dark,
+                border: `4px solid ${colors.border}`,
+                boxShadow: shadows.brutalSmall,
+                padding: '16px',
+                marginBottom: '16px',
+                fontWeight: 900,
+                textTransform: 'uppercase',
+              }}>
+                {status === 'requesting_signature' && '⏳ WAITING FOR WALLET SIGNATURE…'}
+                {status === 'submitted' && '📡 TRANSACTION SUBMITTED…'}
+                {status === 'pending' && '⏳ TRANSACTION PENDING…'}
+                {status === 'success' && '🎉 PRIZE CLAIMED!'}
+                {status === 'failed' && '❌ CLAIM FAILED. TRY AGAIN.'}
                 {txId && (
-                  <div className="text-xs mt-1 opacity-70 break-all">txId: {txId}</div>
+                  <div style={{ fontSize: '10px', marginTop: '8px', opacity: 0.8, wordBreak: 'break-all', textTransform: 'none' }}>
+                    txId: {txId}
+                  </div>
                 )}
               </div>
             )}
 
-            <div className="mt-4 flex justify-end gap-2">
-              <button className={`${brutal} bg-zinc-200 hover:bg-zinc-300 px-4 py-2`} onClick={() => (status === 'idle' ? onClose() : null)} disabled={status !== 'idle'}>Cancel</button>
-              <button
-                className={`${brutal} px-4 py-2 ${canConfirm ? 'bg-black text-white hover:bg-zinc-800' : 'bg-zinc-400 text-white cursor-not-allowed'}`}
+            {/* Action buttons */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <NeoButton
+                variant="secondary"
+                size="lg"
+                onClick={() => (status === 'idle' ? onClose() : null)}
+                disabled={status !== 'idle'}
+              >
+                CANCEL
+              </NeoButton>
+
+              <NeoButton
+                variant="success"
+                size="lg"
                 onClick={handleConfirm}
                 disabled={!canConfirm}
               >
                 {status === 'requesting_signature' || status === 'submitted' || status === 'pending' ? (
-                  <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin"/> Processing…</span>
+                  <>
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                      style={{ display: 'inline-block' }}
+                    >
+                      <Loader2 className="inline h-5 w-5 mr-2" />
+                    </motion.div>
+                    CLAIMING…
+                  </>
+                ) : status === 'success' ? (
+                  <>
+                    <CheckCircle2 className="inline h-5 w-5 mr-2" />
+                    CLAIMED!
+                  </>
                 ) : (
-                  <span className="inline-flex items-center gap-2"><Trophy className="h-4 w-4"/> Confirm Claim</span>
+                  <>
+                    <Trophy className="inline h-5 w-5 mr-2" />
+                    CLAIM NOW
+                  </>
                 )}
-              </button>
+              </NeoButton>
             </div>
           </motion.div>
         </motion.div>
