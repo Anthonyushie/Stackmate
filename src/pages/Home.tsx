@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useQueries, useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import WalletConnect from '../components/WalletConnect';
+import NotificationBell from '../components/NotificationBell';
 import useWallet from '../hooks/useWallet';
 import { useActivePuzzles } from '../hooks/useBlockchain';
 import { getPuzzleInfo, getLeaderboard, type LeaderboardEntry, type PuzzleInfo } from '../lib/contracts';
@@ -213,7 +214,10 @@ export default function Home() {
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-20">
         <header className="flex items-center justify-between mb-8 sm:mb-12">
           <div className={`${brutal} bg-white/80 dark:bg-zinc-900/60 backdrop-blur px-4 py-2 text-xl font-black tracking-tight`}>Stackmate</div>
-          <WalletConnect />
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+            <WalletConnect />
+          </div>
         </header>
 
         <section className="mb-14 sm:mb-20">
