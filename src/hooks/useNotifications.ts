@@ -37,16 +37,66 @@ function storageKeys(network: NetworkName, address: string | null) {
   return {
     notif: `stackmate:notifs:${network}:${who}`,
     meta: `stackmate:notifs:meta:${network}:${who}`,
+    prefs: `stackmate:notifs:prefs:${network}:${who}`,
   };
 }
 
 function now() { return Date.now(); }
+
+type NotifPrefs = { enableSound: boolean; enableDesktop: boolean };
+
+function readPrefs(key: string): NotifPrefs {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return { enableSound: false, enableDesktop: false };
+}
+
+function writePrefs(key: string, prefs: NotifPrefs) {
+  try { localStorage.setItem(key, JSON.stringify(prefs)); } catch {}
+}
+
+function playBeep(type: NotificationType) {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const freq = type === 'win' ? 880 : type === 'deadline_soon' ? 660 : type === 'overtaken' ? 520 : 600;
+    osc.frequency.value = freq;
+    osc.type = 'sine';
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.08, ctx.currentTime + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.25);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.3);
+  } catch {}
+}
+
+function showDesktopNotification(n: NotificationItem) {
+  try {
+    if (!('Notification' in window)) return;
+    if (Notification.permission !== 'granted') return;
+    const notif = new Notification('Stackmate', {
+      body: n.message,
+      icon: '/vite.svg',
+      tag: n.id,
+      renotify: false,
+      silent: true,
+    });
+    notif.onclick = () => {
+      try { window.focus(); } catch {}
+    };
+  } catch {}
+}
 
 export default function useNotifications() {
   const { network, getAddress } = useWallet();
   const address = getAddress();
   const keys = storageKeys(network, address);
 
+  const [prefs, setPrefs] = useState<NotifPrefs>(() => readPrefs(keys.prefs));
   const [notifications, setNotifications] = useState<NotificationItem[]>(() => {
     try {
       const raw = localStorage.getItem(keys.notif);
@@ -70,9 +120,11 @@ export default function useNotifications() {
       setNotifications(rawNotif ? JSON.parse(rawNotif) : []);
       const rawMeta = localStorage.getItem(keys.meta);
       metaRef.current = rawMeta ? JSON.parse(rawMeta) : {};
+      setPrefs(readPrefs(keys.prefs));
     } catch {
       setNotifications([]);
       metaRef.current = {};
+      setPrefs({ enableSound: false, enableDesktop: false });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [network, address]);
@@ -90,9 +142,13 @@ export default function useNotifications() {
       if (prev.some(x => x.id === n.id)) return prev;
       const next = [n, ...prev].slice(0, 100);
       save(next);
+      try {
+        if (prefs.enableSound) playBeep(n.type);
+        if (prefs.enableDesktop) showDesktopNotification(n);
+      } catch {}
       return next;
     });
-  }, [save]);
+  }, [save, prefs.enableSound, prefs.enableDesktop]);
 
   const markAsRead = useCallback((id: string) => {
     setNotifications((prev) => {
@@ -275,10 +331,40 @@ export default function useNotifications() {
     return () => { stopped = true; clearInterval(id); document.removeEventListener('visibilitychange', onVis); };
   }, [pollOnce]);
 
+  const setEnableSound = useCallback((v: boolean) => {
+    setPrefs((p) => { const np = { ...p, enableSound: v }; writePrefs(keys.prefs, np); return np; });
+  }, [keys.prefs]);
+
+  const setEnableDesktop = useCallback(async (v: boolean) => {
+    if (!('Notification' in window)) { setPrefs((p) => { const np = { ...p, enableDesktop: false }; writePrefs(keys.prefs, np); return np; }); return; }
+    if (v) {
+      if (Notification.permission === 'granted') {
+        setPrefs((p) => { const np = { ...p, enableDesktop: true }; writePrefs(keys.prefs, np); return np; });
+      } else if (Notification.permission !== 'denied') {
+        try {
+          const res = await Notification.requestPermission();
+          const ok = res === 'granted';
+          setPrefs((p) => { const np = { ...p, enableDesktop: ok }; writePrefs(keys.prefs, np); return np; });
+        } catch {
+          setPrefs((p) => { const np = { ...p, enableDesktop: false }; writePrefs(keys.prefs, np); return np; });
+        }
+      } else {
+        setPrefs((p) => { const np = { ...p, enableDesktop: false }; writePrefs(keys.prefs, np); return np; });
+      }
+    } else {
+      setPrefs((p) => { const np = { ...p, enableDesktop: false }; writePrefs(keys.prefs, np); return np; });
+    }
+  }, [keys.prefs]);
+
   return {
     notifications: useMemo(() => [...notifications].sort((a, b) => b.createdAt - a.createdAt), [notifications]),
     unreadCount,
     markAsRead,
     markAllAsRead,
+    enableSound: prefs.enableSound,
+    enableDesktop: prefs.enableDesktop && (typeof window !== 'undefined' ? (('Notification' in window) && Notification.permission === 'granted') : false),
+    desktopPermission: (typeof window !== 'undefined' && 'Notification' in window) ? Notification.permission : 'unsupported',
+    setEnableSound,
+    setEnableDesktop,
   };
 }
