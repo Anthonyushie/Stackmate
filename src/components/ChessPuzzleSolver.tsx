@@ -2,7 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Chess, Move, type Square } from 'chess.js';
 import { Chessboard } from 'react-chessboard';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Lightbulb, RotateCcw, PartyPopper } from 'lucide-react';
 import type { JSX } from 'react/jsx-runtime';
+import { colors, shadows } from '../styles/neo-brutal-theme';
+import NeoButton from './neo/NeoButton';
+import NeoBadge from './neo/NeoBadge';
 
 type SolveStats = {
   puzzleId: string;
@@ -15,12 +19,9 @@ type SolveStats = {
 export interface ChessPuzzleSolverProps {
   puzzleId: string;
   fen: string;
-  solution: string[]; // SAN moves, full line including opponent replies
+  solution: string[];
   onSolve?: (stats: SolveStats) => void;
 }
-
-const brutal =
-  'rounded-none border-[3px] border-black shadow-[6px_6px_0_#000] active:shadow-[2px_2px_0_#000] active:translate-x-[4px] active:translate-y-[4px] transition-all';
 
 const unicode: Record<string, string> = {
   wK: '♔', wQ: '♕', wR: '♖', wB: '♗', wN: '♘', wP: '♙',
@@ -32,27 +33,25 @@ function pad(n: number) { return n < 10 ? `0${n}` : `${n}`; }
 export default function ChessPuzzleSolver({ puzzleId, fen, solution, onSolve }: ChessPuzzleSolverProps) {
   const [game, setGame] = useState(() => new Chess(fen));
   const [boardFen, setBoardFen] = useState(fen);
-  const [index, setIndex] = useState(0); // pointer into solution array
+  const [index, setIndex] = useState(0);
   const [history, setHistory] = useState<string[]>([]);
   const [lastMove, setLastMove] = useState<{ from: Square; to: Square } | null>(null);
   const [wrongShakeKey, setWrongShakeKey] = useState(0);
   const [hintMove, setHintMove] = useState<{ from: Square; to: Square } | null>(null);
   const [hintsUsed, setHintsUsed] = useState(0);
 
-  const [elapsed, setElapsed] = useState(0); // in seconds
+  const [elapsed, setElapsed] = useState(0);
   const [penalties, setPenalties] = useState(0);
   const [solved, setSolved] = useState(false);
 
   const boardWrapRef = useRef<HTMLDivElement>(null);
   const [boardSize, setBoardSize] = useState(480);
 
-  // Timer
   useEffect(() => {
     const id = setInterval(() => setElapsed((s) => s + 1), 1000);
     return () => clearInterval(id);
   }, [puzzleId]);
 
-  // Resize observer for responsive board
   useEffect(() => {
     const el = boardWrapRef.current;
     if (!el) return;
@@ -65,7 +64,6 @@ export default function ChessPuzzleSolver({ puzzleId, fen, solution, onSolve }: 
     return () => ro.disconnect();
   }, []);
 
-  // Reset on new puzzle
   useEffect(() => {
     const g = new Chess(fen);
     setGame(g);
@@ -82,14 +80,9 @@ export default function ChessPuzzleSolver({ puzzleId, fen, solution, onSolve }: 
 
   const nextExpectedSan = solution[index] ?? null;
 
-  // Auto-play opponent reply after a correct player move
   const maybeAutoPlayOpponent = useCallback(() => {
-    // If next move in solution exists and it is opponent's move (by alternation), we auto-play it.
-    // Since solution is full line starting from side-to-move in FEN, we alternate: after user plays move at index i, we auto-play i+1
     if (index >= solution.length) return;
     const g = new Chess(game.fen());
-    // If it's opponent turn compared to original start after index moves are applied, we can check parity:
-    // We just advanced index by 1 on the user move, so i is now odd -> auto-play.
     const i = index;
     if (i < solution.length && i % 2 === 1) {
       const san = solution[i];
@@ -118,30 +111,27 @@ export default function ChessPuzzleSolver({ puzzleId, fen, solution, onSolve }: 
       };
       onSolve?.(stats);
     } else {
-      // after each state change, attempt opponent move if needed
       maybeAutoPlayOpponent();
     }
   }, [index]);
 
-  // Board colors (Neo-brutalist palette)
   const boardStyle = useMemo(() => ({
     borderRadius: 0,
-    boxShadow: 'inset 0 0 0 3px #000',
+    boxShadow: `inset 0 0 0 6px ${colors.border}`,
   }), []);
 
   const customDark = '#111827';
   const customLight = '#fde68a';
 
-  // Square styles for feedback
   const squareStyles = useMemo(() => {
     const styles: Record<string, React.CSSProperties> = {};
     if (lastMove) {
-      styles[lastMove.from] = { background: 'rgba(16,185,129,0.35)' };
-      styles[lastMove.to] = { background: 'rgba(16,185,129,0.5)' };
+      styles[lastMove.from] = { background: colors.success, opacity: 0.5 };
+      styles[lastMove.to] = { background: colors.success, opacity: 0.7 };
     }
     if (hintMove) {
-      styles[hintMove.from] = { background: 'rgba(59,130,246,0.35)' };
-      styles[hintMove.to] = { background: 'rgba(59,130,246,0.5)' };
+      styles[hintMove.from] = { background: colors.accent, opacity: 0.5, boxShadow: `inset 0 0 0 4px ${colors.accent}` };
+      styles[hintMove.to] = { background: colors.accent, opacity: 0.7, boxShadow: `inset 0 0 0 4px ${colors.accent}` };
     }
     return styles;
   }, [lastMove, hintMove]);
@@ -156,12 +146,12 @@ export default function ChessPuzzleSolver({ puzzleId, fen, solution, onSolve }: 
             width: squareWidth,
             height: squareWidth,
             fontSize: squareWidth * 0.65,
-            textShadow: '2px 2px 0 #000',
-            color: k.startsWith('w') ? '#111' : '#111',
+            textShadow: `3px 3px 0 ${colors.border}`,
+            color: k.startsWith('w') ? '#fff' : '#000',
             background: 'transparent',
           }}
         >
-          <span className={k.startsWith('w') ? 'text-white' : 'text-black'}>{unicode[k]}</span>
+          <span>{unicode[k]}</span>
         </div>
       );
     });
@@ -171,18 +161,14 @@ export default function ChessPuzzleSolver({ puzzleId, fen, solution, onSolve }: 
   const onDrop = useCallback((sourceSquare: Square, targetSquare: Square) => {
     if (solved) return false;
     const g = new Chess(game.fen());
-    // Find a legal move matching from-to
     const legal = g.moves({ verbose: true }) as Move[];
     const candidates = legal.filter((m) => m.from === sourceSquare && m.to === targetSquare);
     if (candidates.length === 0) {
-      // wrong
       setWrongShakeKey((k) => k + 1);
       return false;
     }
-    // Prefer queen promotion when needed
     const mv = candidates.find((m) => (m.promotion ? m.promotion === 'q' : true)) || candidates[0];
     const expected = solution[index];
-    // Try to make the move and get SAN
     const made = g.move({ from: mv.from, to: mv.to, promotion: mv.promotion });
     if (!made) {
       setWrongShakeKey((k) => k + 1);
@@ -190,11 +176,9 @@ export default function ChessPuzzleSolver({ puzzleId, fen, solution, onSolve }: 
     }
     const san = made.san;
     if (san !== expected) {
-      // Revert if wrong
       setWrongShakeKey((k) => k + 1);
       return false;
     }
-    // Correct
     setGame(g);
     setBoardFen(g.fen());
     setHistory((h) => [...h, san]);
@@ -207,7 +191,6 @@ export default function ChessPuzzleSolver({ puzzleId, fen, solution, onSolve }: 
   const useHint = useCallback(() => {
     if (solved || !nextExpectedSan) return;
     const g = new Chess(game.fen());
-    // Find the move squares for the next SAN
     try {
       const verboseMoves = g.moves({ verbose: true }) as Move[];
       for (const m of verboseMoves) {
@@ -230,20 +213,62 @@ export default function ChessPuzzleSolver({ puzzleId, fen, solution, onSolve }: 
     return `${m}:${pad(s)}`;
   }, [elapsed, penalties]);
 
+  const reset = useCallback(() => {
+    const g = new Chess(fen);
+    setGame(g);
+    setBoardFen(fen);
+    setIndex(0);
+    setHistory([]);
+    setLastMove(null);
+    setHintMove(null);
+    setSolved(false);
+    setElapsed(0);
+    setPenalties(0);
+    setHintsUsed(0);
+  }, [fen]);
+
   return (
-    <div className="w-full grid lg:grid-cols-2 gap-6">
+    <div className="w-full grid lg:grid-cols-[2fr_1fr] gap-6">
+      {/* Board Section */}
       <motion.div
         key={wrongShakeKey}
         ref={boardWrapRef}
-        className={`bg-yellow-200 p-3 ${brutal}`}
         initial={{ x: 0 }}
-        animate={{ x: [0, -6, 6, -3, 3, 0] }}
-        transition={{ duration: 0.3 }}
+        animate={{ x: wrongShakeKey > 0 ? [0, -8, 8, -4, 4, 0] : 0 }}
+        transition={{ duration: 0.4 }}
+        style={{
+          padding: '16px',
+          background: colors.primary,
+          border: `6px solid ${colors.border}`,
+          boxShadow: shadows.brutal,
+          transform: 'rotate(-1deg)',
+        }}
       >
-        <div className="flex items-center justify-between mb-2">
-          <div className="text-xs font-black uppercase tracking-wider">Puzzle #{puzzleId}</div>
-          <div className="text-xs font-black">Time: {timeDisplay} {penalties > 0 && <span className="opacity-60">(+{penalties}s)</span>}</div>
+        {/* Timer and Puzzle ID */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+          <NeoBadge color={colors.dark} size="md">
+            PUZZLE #{puzzleId}
+          </NeoBadge>
+          <div
+            style={{
+              padding: '8px 16px',
+              background: colors.dark,
+              border: `4px solid ${colors.border}`,
+              fontFamily: "'JetBrains Mono', monospace",
+              fontWeight: 900,
+              fontSize: 'clamp(16px, 3vw, 20px)',
+              color: colors.primary,
+              textShadow: `0 0 6px ${colors.primary}`,
+            }}
+          >
+            {timeDisplay}
+            {penalties > 0 && (
+              <span style={{ fontSize: '12px', opacity: 0.7 }}> (+{penalties}s)</span>
+            )}
+          </div>
         </div>
+
+        {/* Chess Board */}
         <Chessboard
           {...({
             position: boardFen,
@@ -253,53 +278,156 @@ export default function ChessPuzzleSolver({ puzzleId, fen, solution, onSolve }: 
             customLightSquareStyle: { backgroundColor: customLight },
             customSquareStyles: squareStyles,
             boardWidth: boardSize,
-            animationDuration: 300,
+            animationDuration: 200,
             areArrowsAllowed: false,
             customPieces: customPieces,
           } as any)}
         />
-        <div className="mt-3 flex gap-2">
-          <button className={`px-3 py-2 bg-blue-300 hover:bg-blue-400 ${brutal}`} onClick={useHint} disabled={solved}>Hint (-30s)</button>
-          <button className={`px-3 py-2 bg-purple-300 hover:bg-purple-400 ${brutal}`} onClick={() => {
-            // Reset
-            const g = new Chess(fen);
-            setGame(g);
-            setBoardFen(fen);
-            setIndex(0);
-            setHistory([]);
-            setLastMove(null);
-            setHintMove(null);
-            setSolved(false);
-            setElapsed(0);
-            setPenalties(0);
-            setHintsUsed(0);
-          }}>Reset</button>
+
+        {/* Action Buttons */}
+        <div style={{ display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap' }}>
+          <NeoButton variant="accent" size="md" onClick={useHint} disabled={solved}>
+            <Lightbulb className="h-4 w-4 inline mr-2" />
+            HINT (-30s)
+          </NeoButton>
+          <NeoButton variant="secondary" size="md" onClick={reset}>
+            <RotateCcw className="h-4 w-4 inline mr-2" />
+            RESET
+          </NeoButton>
         </div>
       </motion.div>
 
-      <div className={`bg-white dark:bg-zinc-900 p-4 ${brutal}`}>
-        <div className="flex items-center justify-between mb-3">
-          <div className="text-lg font-black">Move History</div>
-          <div className="text-xs opacity-60">{history.length}/{solution.length}</div>
+      {/* Move History & Instructions */}
+      <div
+        style={{
+          padding: '20px',
+          background: colors.white,
+          border: `6px solid ${colors.border}`,
+          boxShadow: shadows.brutal,
+          transform: 'rotate(1deg)',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <h3
+            style={{
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontWeight: 900,
+              fontSize: 'clamp(18px, 3vw, 24px)',
+              textTransform: 'uppercase',
+              letterSpacing: '-0.02em',
+              color: colors.dark,
+            }}
+          >
+            MOVE HISTORY
+          </h3>
+          <NeoBadge color={colors.accent} size="sm">
+            {history.length}/{solution.length}
+          </NeoBadge>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+
+        {/* Move Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '8px', marginBottom: '16px' }}>
           {history.map((san, i) => (
-            <div key={i} className="px-2 py-1 bg-green-100 dark:bg-green-900 border border-black">{i + 1}. {san}</div>
+            <motion.div
+              key={i}
+              initial={{ scale: 0, rotate: -10 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: 'spring', stiffness: 300 }}
+              style={{
+                padding: '8px',
+                background: colors.success,
+                border: `3px solid ${colors.border}`,
+                fontFamily: "'JetBrains Mono', monospace",
+                fontWeight: 700,
+                fontSize: '12px',
+                textAlign: 'center',
+                color: colors.dark,
+              }}
+            >
+              {i + 1}. {san}
+            </motion.div>
           ))}
           {index < solution.length && (
-            <div className="px-2 py-1 bg-yellow-100 dark:bg-yellow-900 border border-black">Next: {solution[index]}</div>
+            <motion.div
+              animate={{ scale: [1, 1.05, 1] }}
+              transition={{ repeat: Infinity, duration: 1.5 }}
+              style={{
+                padding: '8px',
+                background: colors.primary,
+                border: `3px solid ${colors.border}`,
+                fontFamily: "'JetBrains Mono', monospace",
+                fontWeight: 700,
+                fontSize: '12px',
+                textAlign: 'center',
+                color: colors.dark,
+              }}
+            >
+              NEXT: {solution[index]}
+            </motion.div>
           )}
         </div>
-        <div className="mt-4">
-          <div className="text-xs font-bold uppercase mb-2">Instructions</div>
-          <ul className="list-disc ml-5 text-xs space-y-1">
-            <li>Reproduce the solution exactly. The opponent replies automatically.</li>
-            <li>Use Hint to reveal the next move path (30s penalty).</li>
-            <li>Wrong moves will shake the board in red.</li>
+
+        {/* Instructions */}
+        <div
+          style={{
+            marginTop: 'auto',
+            padding: '16px',
+            background: colors.accent,
+            border: `4px solid ${colors.border}`,
+            boxShadow: shadows.brutalSmall,
+          }}
+        >
+          <h4
+            style={{
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontWeight: 900,
+              fontSize: '14px',
+              textTransform: 'uppercase',
+              marginBottom: '8px',
+              color: colors.dark,
+            }}
+          >
+            INSTRUCTIONS
+          </h4>
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+            {[
+              'Reproduce the solution exactly',
+              'Opponent replies automatically',
+              'Use Hint for 30s penalty',
+              'Wrong moves shake the board',
+            ].map((text, i) => (
+              <li
+                key={i}
+                style={{
+                  fontFamily: "'Inter', sans-serif",
+                  fontWeight: 700,
+                  fontSize: '12px',
+                  marginBottom: '6px',
+                  paddingLeft: '16px',
+                  position: 'relative',
+                  color: colors.dark,
+                }}
+              >
+                <span
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    fontWeight: 900,
+                  }}
+                >
+                  →
+                </span>
+                {text}
+              </li>
+            ))}
           </ul>
         </div>
       </div>
 
+      {/* Success Modal */}
       <AnimatePresence>
         {solved && (
           <motion.div
@@ -308,22 +436,120 @@ export default function ChessPuzzleSolver({ puzzleId, fen, solution, onSolve }: 
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            <div className="absolute inset-0 bg-black/40" />
+            <div
+              className="absolute inset-0"
+              style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+            />
+
+            {/* Confetti */}
+            <div className="pointer-events-none absolute inset-0 overflow-hidden">
+              {Array.from({ length: 40 }).map((_, i) => (
+                <motion.div
+                  key={i}
+                  className="absolute"
+                  style={{
+                    left: `${(i * 7) % 100}%`,
+                    top: '-10px',
+                    width: '12px',
+                    height: '12px',
+                    background: i % 4 === 0 ? colors.primary : i % 4 === 1 ? colors.secondary : i % 4 === 2 ? colors.accent : colors.success,
+                    border: `2px solid ${colors.border}`,
+                  }}
+                  initial={{ y: -20, rotate: 0, opacity: 0 }}
+                  animate={{ y: ['0vh', '110vh'], rotate: [0, 360], opacity: [0, 1, 1, 0] }}
+                  transition={{ duration: 2 + (i % 10) * 0.2, delay: (i % 10) * 0.05 }}
+                />
+              ))}
+            </div>
+
             <motion.div
-              className={`relative bg-white p-6 ${brutal}`}
-              initial={{ scale: 0.8, rotate: -2 }}
+              initial={{ scale: 0.8, rotate: -5 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+              style={{
+                position: 'relative',
+                maxWidth: '500px',
+                width: '90%',
+                padding: '32px',
+                background: colors.success,
+                border: `8px solid ${colors.border}`,
+                boxShadow: shadows.brutalLarge,
+              }}
             >
-              <div className="text-2xl font-black mb-2">Puzzle Solved!</div>
-              <div className="text-sm mb-4">Time: {timeDisplay} {penalties > 0 && <span className="opacity-60">(incl. penalties)</span>}</div>
-              <div className="grid grid-cols-2 gap-2 text-xs mb-4">
-                {history.map((san, i) => (
-                  <div key={i} className="px-2 py-1 bg-green-100 border border-black">{i + 1}. {san}</div>
-                ))}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  marginBottom: '24px',
+                }}
+              >
+                <PartyPopper className="h-12 w-12" style={{ color: colors.dark }} />
+                <h2
+                  style={{
+                    fontFamily: "'Space Grotesk', sans-serif",
+                    fontWeight: 900,
+                    fontSize: 'clamp(32px, 5vw, 48px)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '-0.02em',
+                    color: colors.dark,
+                    textShadow: `4px 4px 0px ${colors.border}`,
+                  }}
+                >
+                  SOLVED!
+                </h2>
               </div>
-              <div className="flex justify-end">
-                <button className={`px-4 py-2 bg-green-300 hover:bg-green-400 ${brutal}`} onClick={() => setSolved(false)}>Close</button>
+
+              <div
+                style={{
+                  padding: '20px',
+                  background: colors.dark,
+                  border: `4px solid ${colors.border}`,
+                  marginBottom: '20px',
+                }}
+              >
+                <div
+                  style={{
+                    fontFamily: "'Inter', sans-serif",
+                    fontWeight: 700,
+                    fontSize: '14px',
+                    textTransform: 'uppercase',
+                    color: colors.white,
+                    marginBottom: '8px',
+                  }}
+                >
+                  Your Time
+                </div>
+                <div
+                  style={{
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontWeight: 900,
+                    fontSize: 'clamp(36px, 6vw, 48px)',
+                    color: colors.primary,
+                    textShadow: `0 0 10px ${colors.primary}`,
+                  }}
+                >
+                  {timeDisplay}
+                </div>
+                {penalties > 0 && (
+                  <div
+                    style={{
+                      fontFamily: "'Inter', sans-serif",
+                      fontWeight: 700,
+                      fontSize: '12px',
+                      color: colors.white,
+                      opacity: 0.7,
+                    }}
+                  >
+                    (includes {penalties}s penalties)
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <NeoButton variant="primary" size="lg" onClick={() => setSolved(false)}>
+                  CLOSE
+                </NeoButton>
               </div>
             </motion.div>
           </motion.div>
