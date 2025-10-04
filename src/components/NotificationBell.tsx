@@ -1,63 +1,212 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Bell } from 'lucide-react';
 import useNotifications from '../hooks/useNotifications';
 import { formatRelativeTime } from '../lib/time-utils';
-
-const brutal = 'rounded-none border-[3px] border-black shadow-[6px_6px_0_#000]';
+import { colors, shadows } from '../styles/neo-brutal-theme';
+import NeoButton from './neo/NeoButton';
 
 export default function NotificationBell() {
   const { notifications, unreadCount, markAsRead, markAllAsRead, enableSound, enableDesktop, desktopPermission, setEnableSound, setEnableDesktop } = useNotifications();
   const [open, setOpen] = useState(false);
-  const btnRef = useRef<HTMLButtonElement>(null);
 
   const top = useMemo(() => notifications.slice(0, 10), [notifications]);
 
   return (
     <div className="relative">
-      <button ref={btnRef} className={`relative inline-flex items-center justify-center h-9 w-9 bg-white ${brutal}`} onClick={() => setOpen(o => !o)} aria-label="Notifications">
-        <Bell className="h-4 w-4" />
+      <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={() => setOpen(o => !o)}
+        aria-label="Notifications"
+        style={{
+          position: 'relative',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '48px',
+          height: '48px',
+          background: colors.white,
+          border: `4px solid ${colors.border}`,
+          boxShadow: shadows.brutal,
+          cursor: 'pointer',
+        }}
+      >
+        <Bell className="h-5 w-5" style={{ color: colors.dark }} />
+        
+        {/* MASSIVE unread indicator */}
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] leading-none px-1.5 py-0.5 rounded-full border-[2px] border-black shadow-[2px_2px_0_#000]">{unreadCount}</span>
+          <motion.span
+            initial={{ scale: 0 }}
+            animate={{ scale: [1, 1.2, 1] }}
+            transition={{ repeat: Infinity, duration: 2 }}
+            style={{
+              position: 'absolute',
+              top: '-8px',
+              right: '-8px',
+              background: colors.error,
+              color: colors.white,
+              fontSize: '14px',
+              fontWeight: 900,
+              padding: '4px 8px',
+              border: `3px solid ${colors.border}`,
+              boxShadow: shadows.brutalSmall,
+              minWidth: '28px',
+              textAlign: 'center',
+            }}
+          >
+            {unreadCount}
+          </motion.span>
         )}
-      </button>
+      </motion.button>
 
-      {open && (
-        <div className={`absolute right-0 mt-2 w-80 bg-white ${brutal} z-50`}>
-          <div className="flex items-center justify-between px-3 py-2 border-b border-black/20">
-            <div>
-              <div className="text-xs font-black uppercase tracking-wider">Notifications</div>
-              <div className="flex items-center gap-2 mt-1">
-                <label className="flex items-center gap-1 text-[11px]">
-                  <input type="checkbox" checked={enableSound} onChange={(e) => setEnableSound(e.target.checked)} />
-                  Sound
-                </label>
-                <label className="flex items-center gap-1 text-[11px]">
-                  <input type="checkbox" checked={enableDesktop} onChange={(e) => setEnableDesktop(e.target.checked)} disabled={desktopPermission === 'denied' || desktopPermission === 'unsupported'} />
-                  Desktop
-                </label>
-                {(desktopPermission === 'denied') && (
-                  <span className="text-[10px] opacity-70">(blocked in browser)</span>
-                )}
+      {/* Dropdown */}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: -10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: -10 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+            style={{
+              position: 'absolute',
+              right: 0,
+              marginTop: '12px',
+              width: '360px',
+              background: colors.white,
+              border: `6px solid ${colors.border}`,
+              boxShadow: shadows.brutalLarge,
+              zIndex: 50,
+            }}
+          >
+            {/* Header */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '16px',
+              borderBottom: `3px solid ${colors.border}`,
+              background: colors.accent1,
+            }}>
+              <div>
+                <div style={{
+                  fontFamily: "'Space Grotesk', sans-serif",
+                  fontSize: '18px',
+                  fontWeight: 900,
+                  textTransform: 'uppercase',
+                }}>
+                  NOTIFICATIONS
+                </div>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  marginTop: '8px',
+                }}>
+                  <label style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}>
+                    <input 
+                      type="checkbox" 
+                      checked={enableSound} 
+                      onChange={(e) => setEnableSound(e.target.checked)}
+                      style={{ transform: 'scale(1.2)' }}
+                    />
+                    Sound
+                  </label>
+                  <label style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}>
+                    <input 
+                      type="checkbox" 
+                      checked={enableDesktop} 
+                      onChange={(e) => setEnableDesktop(e.target.checked)} 
+                      disabled={desktopPermission === 'denied' || desktopPermission === 'unsupported'}
+                      style={{ transform: 'scale(1.2)' }}
+                    />
+                    Desktop
+                  </label>
+                  {desktopPermission === 'denied' && (
+                    <span style={{ fontSize: '10px', opacity: 0.7 }}>(blocked)</span>
+                  )}
+                </div>
               </div>
+              {unreadCount > 0 && (
+                <NeoButton variant="primary" size="sm" onClick={() => markAllAsRead()}>
+                  MARK READ
+                </NeoButton>
+              )}
             </div>
-            {unreadCount > 0 && (
-              <button className={`text-xs bg-yellow-300 px-2 py-1 ${brutal}`} onClick={() => markAllAsRead()}>Mark all read</button>
-            )}
-          </div>
-          <div className="max-h-80 overflow-auto">
-            {top.length === 0 && (
-              <div className="px-3 py-4 text-sm opacity-70">No notifications</div>
-            )}
-            {top.map((n) => (
-              <div key={n.id} className={`px-3 py-2 border-b border-black/10 ${!n.read ? 'bg-yellow-100' : 'bg-white'}`} onClick={() => markAsRead(n.id)}>
-                <div className="text-sm font-bold">{n.message}</div>
-                <div className="text-[11px] opacity-60">{formatRelativeTime(n.createdAt)}</div>
-              </div>
-            ))}
-          </div>
-          <div className="px-3 py-2 text-[11px] opacity-60">Showing latest 10</div>
-        </div>
-      )}
+
+            {/* Notifications list */}
+            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+              {top.length === 0 && (
+                <div style={{
+                  padding: '32px 16px',
+                  textAlign: 'center',
+                  fontSize: '14px',
+                  opacity: 0.7,
+                  fontWeight: 700,
+                }}>
+                  No notifications
+                </div>
+              )}
+              {top.map((n, i) => (
+                <motion.div
+                  key={n.id}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  onClick={() => markAsRead(n.id)}
+                  style={{
+                    padding: '16px',
+                    borderBottom: `2px solid ${colors.border}`,
+                    background: !n.read ? colors.primary : colors.white,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <div style={{
+                    fontWeight: 900,
+                    fontSize: '14px',
+                    marginBottom: '4px',
+                  }}>
+                    {n.message}
+                  </div>
+                  <div style={{
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: '11px',
+                    opacity: 0.6,
+                  }}>
+                    {formatRelativeTime(n.createdAt)}
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Footer */}
+            <div style={{
+              padding: '12px 16px',
+              borderTop: `3px solid ${colors.border}`,
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: '11px',
+              opacity: 0.6,
+              textAlign: 'center',
+            }}>
+              SHOWING LATEST 10
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

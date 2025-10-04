@@ -550,20 +550,18 @@ export default function Home() {
       </div>
 
       {/* Enter Modal */}
-      {enterOpen && enterData && (
-        <EnterPuzzleModal
-          puzzleId={enterData.puzzleId}
-          difficulty={enterData.difficulty}
-          entryFeeMicro={enterData.entryFeeMicro}
-          prizePoolMicro={enterData.prizePoolMicro}
-          alreadyEntered={enterData.alreadyEntered}
-          isOpen={enterOpen}
-          onClose={() => {
-            setEnterOpen(false);
-            setEnterData(null);
-          }}
-        />
-      )}
+      <EnterPuzzleModal
+        isOpen={enterOpen && Boolean(enterData)}
+        onClose={() => {
+          setEnterOpen(false);
+          setEnterData(null);
+        }}
+        puzzleId={enterData?.puzzleId || 0}
+        difficulty={enterData?.difficulty || 'beginner'}
+        entryFeeMicro={enterData?.entryFeeMicro || 0}
+        prizePoolMicro={enterData?.prizePoolMicro || 0}
+        alreadyEntered={enterData?.alreadyEntered}
+      />
     </div>
   );
 }
