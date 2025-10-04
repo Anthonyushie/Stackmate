@@ -14,14 +14,15 @@
   }
 
   body {
-    @apply font-body;
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
     background: #F5F5F0;
     color: #000000;
     overflow-x: hidden;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-heading;
+    font-family: 'Space Grotesk', sans-serif;
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: -0.02em;
