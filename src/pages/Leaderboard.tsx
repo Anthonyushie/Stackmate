@@ -223,6 +223,17 @@ export default function LeaderboardPage() {
     }
   });
 
+  const data = q.data as any;
+  const players: Array<{ address: string; totalWins: number; totalWinnings: bigint; totalWinningsStx: string }> = data?.players || [];
+  const today = data?.today || { beginner: [], intermediate: [], expert: [] };
+  const hof = data?.hof || {};
+
+  const filtered = useMemo(() => {
+    const f = (filter || '').trim().toLowerCase();
+    if (!f) return players;
+    return players.filter(p => p.address.includes(f));
+  }, [players, filter]);
+
   if (q.isLoading && !q.data) {
     return (
       <div className={`min-h-screen bg-gradient-to-br from-yellow-200 via-rose-200 to-blue-200 text-black relative overflow-hidden`}>
@@ -236,16 +247,6 @@ export default function LeaderboardPage() {
       </div>
     );
   }
-  const data = q.data as any;
-  const players: Array<{ address: string; totalWins: number; totalWinnings: bigint; totalWinningsStx: string }> = data?.players || [];
-  const today = data?.today || { beginner: [], intermediate: [], expert: [] };
-  const hof = data?.hof || {};
-
-  const filtered = useMemo(() => {
-    const f = (filter || '').trim().toLowerCase();
-    if (!f) return players;
-    return players.filter(p => p.address.includes(f));
-  }, [players, filter]);
 
   function Avatar({ addr, size = 28 }: { addr: string; size?: number }) {
     const bg = hashToHsl(addr);
