@@ -157,7 +157,7 @@ export default function Profile() {
       }
     })
     return out
-  }, [entriesQ.data, entryDetailQueries.map((q) => q.data).join('|'), puzzleInfoQueries.map((q) => q.data ? JSON.stringify(q.data) : '').join('|'), address])
+  }, [JSON.stringify(entriesQ.data || []), JSON.stringify(entryDetailQueries.map((q) => q.data)), JSON.stringify(puzzleInfoQueries.map((q) => q.data)), address])
 
   const solvedRows = useMemo(() => rows.filter((r) => r.result === 'Won' || r.result === 'Solved'), [rows])
   const solvedTimes = useMemo(() => solvedRows.map((r) => Number(r.yourTime)).filter((n) => Number.isFinite(n) && n > 0), [solvedRows])
@@ -266,7 +266,7 @@ export default function Profile() {
           </div>
           <div className={`${brutal} bg-green-200 p-4`}>
             <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider"><Trophy className="h-4 w-4"/> Total Solved</div>
-            <div className="text-2xl font-black">{String(statsQ.data?.totalWins ?? 0n)}</div>
+            <div className="text-2xl font-black">{String(solvedRows.length)}</div>
           </div>
           <div className={`${brutal} bg-blue-200 p-4`}>
             <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider"><Percent className="h-4 w-4"/> Win Rate</div>
