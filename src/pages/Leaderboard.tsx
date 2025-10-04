@@ -1,13 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { motion } from 'framer-motion';
+import { Trophy, Flame, Zap, Crown, Search } from 'lucide-react';
 import useWallet from '../hooks/useWallet';
 import { getPuzzleInfo, getLeaderboard, type PuzzleInfo, type LeaderboardEntry } from '../lib/contracts';
 import { fetchCallReadOnlyFunction, ClarityType, uintCV } from '@stacks/transactions';
 import { getNetwork, type NetworkName } from '../lib/stacks';
 import { Link } from 'react-router-dom';
 import LeaderboardSkeleton from '../components/skeletons/LeaderboardSkeleton';
-
-const brutal = 'rounded-none border-[3px] border-black shadow-[8px_8px_0_#000]';
+import Header from '../components/Header';
+import { colors, shadows, getDifficultyColor } from '../styles/neo-brutal-theme';
+import NeoButton from '../components/neo/NeoButton';
+import NeoBadge from '../components/neo/NeoBadge';
+import NeoInput from '../components/neo/NeoInput';
 
 function getContractIds(network: NetworkName) {
   const id = network === 'testnet' ? (import.meta as any).env?.VITE_CONTRACT_TESTNET : (import.meta as any).env?.VITE_CONTRACT_MAINNET;
@@ -59,7 +64,6 @@ export default function LeaderboardPage() {
       const { address: contractAddress, name: contractName } = getContractIds(network);
       const stxNetwork = getNetwork(network);
 
-      // Fetch total puzzle count
       const countCv: any = await fetchCallReadOnlyFunction({
         contractAddress,
         contractName,
@@ -77,21 +81,17 @@ export default function LeaderboardPage() {
 
       const ids = Array.from({ length: max }, (_, i) => i + 1);
 
-      // Fetch puzzle infos with concurrency limit
       const infos = await concurrentMap(ids, 6, async (id) => {
         try { const info = await getPuzzleInfo({ puzzleId: id, network }); return { id, info }; } catch { return { id, info: null as any }; }
       });
 
-      // Map id->info
       const infoMap = new Map<number, PuzzleInfo>();
       for (const p of infos) { if (p?.info) infoMap.set(p.id, p.info); }
 
-      // Fetch leaderboards for all puzzles
       const lbs = await concurrentMap(ids, 5, async (id) => {
         try { const list = await getLeaderboard({ puzzleId: id, network }); return { id, list }; } catch { return { id, list: [] as LeaderboardEntry[] }; }
       });
 
-      // Aggregate winners and entries
       type WinnerRow = { puzzleId: number; address: string; difficulty: string; netPrize: bigint; timestamp: number; solveTime: number };
       const winners: WinnerRow[] = [];
       const correctEntries: Array<{ puzzleId: number; address: string; difficulty: string; timestamp: number; solveTime: number }> = [];
@@ -118,17 +118,14 @@ export default function LeaderboardPage() {
         }
       }
 
-      // Unique winning players
       const uniquePlayers = Array.from(new Set(winners.map(w => w.address))).filter(Boolean);
 
-      // Fetch user stats for winners only (authoritative totals)
       const stats = await concurrentMap(uniquePlayers, 6, async (addr) => {
         try {
           const { getUserStats } = await import('../lib/contracts');
           const s = await getUserStats({ address: addr, network });
           return { address: addr, totalWins: Number(s.totalWins), totalWinnings: BigInt(s.totalWinnings) };
         } catch {
-          // Fallback: compute from winners list
           const wWins = winners.filter(w => w.address === addr);
           const totalWins = wWins.length;
           const totalWinnings = wWins.reduce((a, w) => a + w.netPrize, 0n);
@@ -141,7 +138,6 @@ export default function LeaderboardPage() {
         .sort((a, b) => (a.totalWinnings < b.totalWinnings ? 1 : a.totalWinnings > b.totalWinnings ? -1 : (b.totalWins - a.totalWins)))
         .slice(0, 100);
 
-      // Today's best times per difficulty
       const todayKey = dayKey(Math.floor(Date.now() / 1000));
       const bestByDiff: Record<'beginner'|'intermediate'|'expert', Array<{ address: string; solveTime: number; puzzleId: number }>> = {
         beginner: [], intermediate: [], expert: []
@@ -149,7 +145,6 @@ export default function LeaderboardPage() {
       const seen = new Set<string>();
       const byDiff = (d: string) => (d === 'intermediate' || d === 'expert') ? d : 'beginner';
       const todayEntries = correctEntries.filter(e => dayKey(e.timestamp) === todayKey);
-      // Sort by solve time asc, then pick top across distinct addresses
       todayEntries.sort((a, b) => (a.solveTime - b.solveTime));
       for (const e of todayEntries) {
         const key = `${e.difficulty}:${e.address}`;
@@ -158,16 +153,12 @@ export default function LeaderboardPage() {
         const diffKey = byDiff(e.difficulty) as 'beginner'|'intermediate'|'expert';
         (bestByDiff[diffKey] as any).push({ address: e.address, solveTime: e.solveTime, puzzleId: e.puzzleId });
       }
-      // trim to top 5 per diff
       (bestByDiff as any).beginner = bestByDiff.beginner.slice(0, 5);
       (bestByDiff as any).intermediate = bestByDiff.intermediate.slice(0, 5);
       (bestByDiff as any).expert = bestByDiff.expert.slice(0, 5);
 
-      // Hall of Fame
-      // Biggest single win
       let biggest = winners.slice().sort((a, b) => (a.netPrize < b.netPrize ? 1 : -1))[0] || null;
 
-      // Most wins in a day
       const winsByDayUser = new Map<string, number>();
       for (const w of winners) {
         const dk = dayKey(w.timestamp || 0);
@@ -180,7 +171,6 @@ export default function LeaderboardPage() {
         if (!mostWinsDay || v > mostWinsDay.count) mostWinsDay = { address: addr, count: v, day };
       }
 
-      // Longest streak (consecutive daily wins)
       const winsByUserDays = new Map<string, Set<string>>();
       for (const w of winners) {
         const dk = dayKey(w.timestamp || 0);
@@ -206,7 +196,6 @@ export default function LeaderboardPage() {
         if (!longestStreak || len > longestStreak.length) longestStreak = { address: addr, length: len };
       }
 
-      // Fastest solve ever
       const fastest = correctEntries.slice().sort((a, b) => (a.solveTime - b.solveTime))[0] || null;
 
       return {
@@ -236,12 +225,9 @@ export default function LeaderboardPage() {
 
   if (q.isLoading && !q.data) {
     return (
-      <div className={`min-h-screen bg-gradient-to-br from-yellow-200 via-rose-200 to-blue-200 text-black relative overflow-hidden`}>
-        <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-          <header className="flex items-center justify-between mb-6">
-            <div className={`${brutal} bg-white/80 backdrop-blur px-4 py-2 text-xl font-black tracking-tight`}>Global Leaderboard</div>
-            <div className="text-xs opacity-70">Updates every 60s</div>
-          </header>
+      <div style={{ minHeight: '100vh', background: colors.light }}>
+        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '32px 20px' }}>
+          <Header />
           <LeaderboardSkeleton rows={10} />
         </div>
       </div>
@@ -252,8 +238,23 @@ export default function LeaderboardPage() {
     const bg = hashToHsl(addr);
     const ch = (addr || 'U')[2]?.toUpperCase() || 'U';
     return (
-      <div className="inline-flex items-center justify-center rounded-full border-[2px] border-black" style={{ width: size, height: size, background: bg }}>
-        <span className="text-xs font-black" style={{ color: '#000' }}>{ch}</span>
+      <div
+        style={{
+          width: size,
+          height: size,
+          borderRadius: '50%',
+          background: bg,
+          border: `3px solid ${colors.border}`,
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontFamily: "'Space Grotesk', sans-serif",
+          fontWeight: 900,
+          fontSize: `${size * 0.5}px`,
+          color: colors.dark,
+        }}
+      >
+        {ch}
       </div>
     );
   }
@@ -262,128 +263,542 @@ export default function LeaderboardPage() {
     const m = Math.floor(sec / 60); const s = sec % 60; const ss = s < 10 ? `0${s}` : String(s); return `${m}:${ss}`;
   }
 
+  function getMedalIcon(rank: number) {
+    if (rank === 1) return '🥇';
+    if (rank === 2) return '🥈';
+    if (rank === 3) return '🥉';
+    return null;
+  }
+
+  function getRankColor(rank: number) {
+    if (rank === 1) return '#FFD700';
+    if (rank === 2) return '#C0C0C0';
+    if (rank === 3) return '#CD7F32';
+    return colors.white;
+  }
+
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-yellow-200 via-rose-200 to-blue-200 text-black relative overflow-hidden`}>
-      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        <header className="flex items-center justify-between mb-6">
-          <div className={`${brutal} bg-white/80 backdrop-blur px-4 py-2 text-xl font-black tracking-tight`}>Global Leaderboard</div>
-          <div className="text-xs opacity-70">Updates every 60s</div>
-        </header>
+    <div style={{ minHeight: '100vh', background: colors.light, position: 'relative', overflow: 'hidden' }}>
+      <div className="grain-texture" style={{ position: 'absolute', inset: 0, opacity: 0.03, pointerEvents: 'none' }} />
+      
+      <div style={{ position: 'relative', zIndex: 10, maxWidth: '1400px', margin: '0 auto', padding: '32px 20px' }}>
+        <Header />
 
-        {/* All-time leaderboard */}
-        <section className="mb-10">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-xs font-black uppercase tracking-wider">All-time leaderboard</div>
-            <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Search address" className={`${brutal} bg-white px-3 py-2 text-sm w-60`} />
+        {/* Page Title */}
+        <motion.div
+          initial={{ rotate: -1, y: -10, opacity: 0 }}
+          animate={{ rotate: 1, y: 0, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 300 }}
+          style={{
+            display: 'inline-block',
+            padding: '20px 40px',
+            background: colors.primary,
+            border: `6px solid ${colors.border}`,
+            boxShadow: shadows.brutal,
+            marginBottom: '24px',
+          }}
+        >
+          <h1
+            style={{
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontWeight: 900,
+              fontSize: 'clamp(36px, 6vw, 56px)',
+              textTransform: 'uppercase',
+              letterSpacing: '-0.02em',
+              color: colors.dark,
+              margin: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '16px',
+            }}
+          >
+            <Trophy className="h-12 w-12" />
+            LEADERBOARD
+          </h1>
+          <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '12px', marginTop: '8px', opacity: 0.7 }}>
+            Updates every 60s
           </div>
-          <div className={`${brutal} bg-white/90 backdrop-blur overflow-hidden`}>
-            <div className="max-h-[460px] overflow-auto">
-              <table className="min-w-full text-sm">
-                <thead className="bg-zinc-100">
-                  <tr>
-                    <th className="text-left p-2">Rank</th>
-                    <th className="text-left p-2">Player</th>
-                    <th className="text-right p-2">Wins</th>
-                    <th className="text-right p-2">Total STX Won</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((p, i) => {
-                    const isYou = p.address === address;
-                    return (
-                      <tr key={p.address} className={`border-t border-zinc-200 hover:bg-yellow-100 transition-colors ${isYou ? 'bg-yellow-200' : ''}`}>
-                        <td className="p-2">{i + 1}</td>
-                        <td className="p-2">
-                          <div className="flex items-center gap-2">
-                            <Avatar addr={p.address} />
-                            <a href={`/profile?address=${encodeURIComponent(p.address)}`} className="font-mono hover:underline">{p.address.slice(0, 6)}…{p.address.slice(-4)}</a>
-                          </div>
-                        </td>
-                        <td className="p-2 text-right font-black">{p.totalWins}</td>
-                        <td className="p-2 text-right font-black">{p.totalWinningsStx} STX</td>
-                      </tr>
-                    );
-                  })}
-                  {filtered.length === 0 && (
-                    <tr><td colSpan={4} className="p-3 text-center text-xs opacity-70">No results</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
+        </motion.div>
 
-        {/* Today's best times */}
-        <section className="mb-10">
-          <div className="text-xs font-black uppercase tracking-wider mb-2">Today's best times</div>
-          <div className="grid md:grid-cols-3 gap-4">
-            {(['beginner','intermediate','expert'] as const).map((dkey) => (
-              <div key={dkey} className={`${brutal} bg-white p-3`}>
-                <div className="text-xs font-black uppercase tracking-wider mb-2">{dkey}</div>
-                <div className="grid gap-2">
-                  {(today[dkey] || []).map((row: any, idx: number) => (
-                    <div key={row.address+idx} className={`${brutal} bg-white hover:bg-yellow-50 p-2 flex items-center justify-between`}>
-                      <div className="flex items-center gap-2">
-                        <Avatar addr={row.address} />
-                        <a href={`/profile?address=${encodeURIComponent(row.address)}`} className="font-mono hover:underline">{row.address.slice(0,6)}…{row.address.slice(-4)}</a>
-                      </div>
-                      <div className="font-black">{fmtTime(row.solveTime)}</div>
+        {/* All-Time Leaderboard */}
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 300, delay: 0.1 }}
+          style={{ marginBottom: '40px' }}
+        >
+          <div
+            style={{
+              display: 'inline-block',
+              padding: '12px 24px',
+              background: colors.accent,
+              border: `5px solid ${colors.border}`,
+              boxShadow: shadows.brutalSmall,
+              marginBottom: '16px',
+            }}
+          >
+            <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 900, fontSize: '24px', textTransform: 'uppercase', margin: 0, color: colors.dark, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Crown className="h-6 w-6" />
+              ALL-TIME CHAMPIONS
+            </h2>
+          </div>
+
+          {/* Search */}
+          <div style={{ marginBottom: '16px', maxWidth: '400px' }}>
+            <NeoInput
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              placeholder="Search address..."
+              label=""
+            />
+          </div>
+
+          {/* Leaderboard Cards */}
+          <div style={{ display: 'grid', gap: '12px' }}>
+            {filtered.slice(0, 50).map((p, i) => {
+              const rank = i + 1;
+              const isYou = p.address === address;
+              const medal = getMedalIcon(rank);
+              const bgColor = getRankColor(rank);
+              const rotation = i % 3 === 0 ? -1 : i % 3 === 1 ? 1 : 0;
+
+              return (
+                <motion.div
+                  key={p.address}
+                  initial={{ rotate: rotation, y: 20, opacity: 0 }}
+                  animate={{ rotate: rotation, y: 0, opacity: 1 }}
+                  whileHover={{ rotate: 0, y: -4, boxShadow: shadows.brutalLarge }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 25, delay: Math.min(i * 0.02, 0.5) }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '16px',
+                    padding: '16px 20px',
+                    background: isYou ? colors.primary : bgColor,
+                    border: `${isYou ? '6px' : '4px'} solid ${colors.border}`,
+                    boxShadow: isYou ? shadows.brutal : shadows.brutalSmall,
+                  }}
+                >
+                  {/* Rank */}
+                  <div
+                    style={{
+                      minWidth: '56px',
+                      height: '56px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: medal ? 'transparent' : colors.dark,
+                      border: medal ? 'none' : `4px solid ${colors.border}`,
+                      borderRadius: '50%',
+                      fontFamily: "'Space Grotesk', sans-serif",
+                      fontWeight: 900,
+                      fontSize: medal ? '36px' : '24px',
+                      color: medal ? 'transparent' : colors.primary,
+                      textShadow: medal ? 'none' : `0 0 6px ${colors.primary}`,
+                    }}
+                  >
+                    {medal || rank}
+                  </div>
+
+                  {/* Avatar */}
+                  <Avatar addr={p.address} size={48} />
+
+                  {/* Address */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <Link
+                      to={`/profile?address=${encodeURIComponent(p.address)}`}
+                      style={{
+                        fontFamily: "'JetBrains Mono', monospace",
+                        fontWeight: 700,
+                        fontSize: 'clamp(13px, 2vw, 16px)',
+                        color: colors.dark,
+                        textDecoration: 'none',
+                        display: 'block',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {p.address.slice(0, 8)}...{p.address.slice(-6)}
+                    </Link>
+                    {isYou && (
+                      <NeoBadge color={colors.dark} size="sm" style={{ marginTop: '4px' }}>
+                        YOU
+                      </NeoBadge>
+                    )}
+                  </div>
+
+                  {/* Wins */}
+                  <div
+                    style={{
+                      padding: '8px 12px',
+                      background: colors.success,
+                      border: `3px solid ${colors.border}`,
+                      textAlign: 'center',
+                    }}
+                  >
+                    <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, fontSize: '10px', textTransform: 'uppercase', marginBottom: '2px' }}>
+                      WINS
                     </div>
-                  ))}
-                  {(today[dkey] || []).length === 0 && (
-                    <div className={`${brutal} bg-zinc-100 p-2 text-xs text-center`}>No solves yet today</div>
-                  )}
-                </div>
+                    <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 900, fontSize: '18px', color: colors.dark }}>
+                      {p.totalWins}
+                    </div>
+                  </div>
+
+                  {/* Winnings */}
+                  <div
+                    style={{
+                      padding: '8px 16px',
+                      background: colors.dark,
+                      border: `3px solid ${colors.border}`,
+                      textAlign: 'center',
+                      minWidth: '120px',
+                    }}
+                  >
+                    <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, fontSize: '10px', textTransform: 'uppercase', color: colors.white, marginBottom: '2px' }}>
+                      TOTAL WON
+                    </div>
+                    <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 900, fontSize: '18px', color: colors.primary, textShadow: `0 0 6px ${colors.primary}` }}>
+                      {p.totalWinningsStx} STX
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+            {filtered.length === 0 && (
+              <div
+                style={{
+                  padding: '40px',
+                  background: colors.white,
+                  border: `4px solid ${colors.border}`,
+                  boxShadow: shadows.brutalSmall,
+                  textAlign: 'center',
+                  fontFamily: "'Inter', sans-serif",
+                  fontWeight: 700,
+                  fontSize: '14px',
+                  opacity: 0.7,
+                }}
+              >
+                No results found
               </div>
-            ))}
+            )}
           </div>
-        </section>
+        </motion.div>
+
+        {/* Today's Best Times */}
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 300, delay: 0.2 }}
+          style={{ marginBottom: '40px' }}
+        >
+          <div
+            style={{
+              display: 'inline-block',
+              padding: '12px 24px',
+              background: colors.success,
+              border: `5px solid ${colors.border}`,
+              boxShadow: shadows.brutalSmall,
+              marginBottom: '16px',
+            }}
+          >
+            <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 900, fontSize: '24px', textTransform: 'uppercase', margin: 0, color: colors.dark, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Zap className="h-6 w-6" />
+              TODAY'S BEST TIMES
+            </h2>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
+            {(['beginner','intermediate','expert'] as const).map((dkey, idx) => {
+              const diffColor = getDifficultyColor(dkey);
+              const rotation = idx === 0 ? -1 : idx === 1 ? 1 : 0;
+              return (
+                <motion.div
+                  key={dkey}
+                  initial={{ rotate: rotation, y: 20, opacity: 0 }}
+                  animate={{ rotate: rotation, y: 0, opacity: 1 }}
+                  whileHover={{ rotate: 0, y: -4, boxShadow: shadows.brutalLarge }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 25, delay: 0.25 + idx * 0.05 }}
+                  style={{
+                    padding: '20px',
+                    background: diffColor,
+                    border: `6px solid ${colors.border}`,
+                    boxShadow: shadows.brutal,
+                  }}
+                >
+                  <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 900, fontSize: '18px', textTransform: 'uppercase', marginBottom: '16px', color: colors.dark }}>
+                    {dkey}
+                  </div>
+                  <div style={{ display: 'grid', gap: '8px' }}>
+                    {(today[dkey] || []).map((row: any, ridx: number) => (
+                      <div
+                        key={row.address+ridx}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          padding: '10px',
+                          background: colors.white,
+                          border: `3px solid ${colors.border}`,
+                        }}
+                      >
+                        <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 900, fontSize: '16px', minWidth: '24px' }}>
+                          {ridx + 1}.
+                        </div>
+                        <Avatar addr={row.address} size={32} />
+                        <Link
+                          to={`/profile?address=${encodeURIComponent(row.address)}`}
+                          style={{
+                            flex: 1,
+                            fontFamily: "'JetBrains Mono', monospace",
+                            fontWeight: 700,
+                            fontSize: '12px',
+                            color: colors.dark,
+                            textDecoration: 'none',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}
+                        >
+                          {row.address.slice(0,6)}...{row.address.slice(-4)}
+                        </Link>
+                        <div
+                          style={{
+                            padding: '4px 8px',
+                            background: colors.dark,
+                            border: `2px solid ${colors.border}`,
+                            fontFamily: "'JetBrains Mono', monospace",
+                            fontWeight: 900,
+                            fontSize: '13px',
+                            color: colors.primary,
+                          }}
+                        >
+                          {fmtTime(row.solveTime)}
+                        </div>
+                      </div>
+                    ))}
+                    {(today[dkey] || []).length === 0 && (
+                      <div
+                        style={{
+                          padding: '16px',
+                          background: colors.white,
+                          border: `3px solid ${colors.border}`,
+                          textAlign: 'center',
+                          fontFamily: "'Inter', sans-serif",
+                          fontWeight: 700,
+                          fontSize: '12px',
+                          opacity: 0.7,
+                        }}
+                      >
+                        No solves yet today
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        </motion.div>
 
         {/* Hall of Fame */}
-        <section className="mb-6">
-          <div className="text-xs font-black uppercase tracking-wider mb-2">Hall of Fame</div>
-          <div className="grid md:grid-cols-4 gap-4">
-            <div className={`${brutal} bg-yellow-200 p-3`}>
-              <div className="text-[11px] uppercase font-black mb-1">Biggest single win</div>
-              {hof.biggest ? (
-                <div>
-                  <div className="flex items-center gap-2 mb-1"><Avatar addr={hof.biggest.address}/><a href={`/profile?address=${encodeURIComponent(hof.biggest.address)}`} className="font-mono hover:underline">{hof.biggest.address.slice(0,6)}…{hof.biggest.address.slice(-4)}</a></div>
-                  <div className="text-lg font-black">{(Number(hof.biggest.netPrize)/1_000_000).toFixed(2)} STX</div>
-                  <div className="text-[11px] opacity-70">Puzzle #{hof.biggest.puzzleId}</div>
-                </div>
-              ) : (<div className="text-xs opacity-70">—</div>)}
-            </div>
-            <div className={`${brutal} bg-blue-200 p-3`}>
-              <div className="text-[11px] uppercase font-black mb-1">Most wins in a day</div>
-              {hof.mostWinsDay ? (
-                <div>
-                  <div className="flex items-center gap-2 mb-1"><Avatar addr={hof.mostWinsDay.address}/><a href={`/profile?address=${encodeURIComponent(hof.mostWinsDay.address)}`} className="font-mono hover:underline">{hof.mostWinsDay.address.slice(0,6)}…{hof.mostWinsDay.address.slice(-4)}</a></div>
-                  <div className="text-lg font-black">{hof.mostWinsDay.count} wins</div>
-                  <div className="text-[11px] opacity-70">{hof.mostWinsDay.day}</div>
-                </div>
-              ) : (<div className="text-xs opacity-70">—</div>)}
-            </div>
-            <div className={`${brutal} bg-green-200 p-3`}>
-              <div className="text-[11px] uppercase font-black mb-1">Longest streak</div>
-              {hof.longestStreak ? (
-                <div>
-                  <div className="flex items-center gap-2 mb-1"><Avatar addr={hof.longestStreak.address}/><a href={`/profile?address=${encodeURIComponent(hof.longestStreak.address)}`} className="font-mono hover:underline">{hof.longestStreak.address.slice(0,6)}…{hof.longestStreak.address.slice(-4)}</a></div>
-                  <div className="text-lg font-black">{hof.longestStreak.length} days</div>
-                </div>
-              ) : (<div className="text-xs opacity-70">—</div>)}
-            </div>
-            <div className={`${brutal} bg-pink-200 p-3`}>
-              <div className="text-[11px] uppercase font-black mb-1">Fastest solve ever</div>
-              {hof.fastest ? (
-                <div>
-                  <div className="flex items-center gap-2 mb-1"><Avatar addr={hof.fastest.address}/><a href={`/profile?address=${encodeURIComponent(hof.fastest.address)}`} className="font-mono hover:underline">{hof.fastest.address.slice(0,6)}…{hof.fastest.address.slice(-4)}</a></div>
-                  <div className="text-lg font-black">{fmtTime(hof.fastest.solveTime)}</div>
-                  <div className="text-[11px] opacity-70">Puzzle #{hof.fastest.puzzleId}</div>
-                </div>
-              ) : (<div className="text-xs opacity-70">—</div>)}
-            </div>
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 300, delay: 0.3 }}
+        >
+          <div
+            style={{
+              display: 'inline-block',
+              padding: '12px 24px',
+              background: colors.secondary,
+              border: `5px solid ${colors.border}`,
+              boxShadow: shadows.brutalSmall,
+              marginBottom: '16px',
+            }}
+          >
+            <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 900, fontSize: '24px', textTransform: 'uppercase', margin: 0, color: colors.white, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Flame className="h-6 w-6" />
+              HALL OF FAME
+            </h2>
           </div>
-        </section>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+            {/* Biggest Win */}
+            <motion.div
+              initial={{ rotate: -1, scale: 0.9 }}
+              animate={{ rotate: -1, scale: 1 }}
+              whileHover={{ rotate: 0, y: -4, boxShadow: shadows.brutalLarge }}
+              transition={{ type: 'spring', stiffness: 300 }}
+              style={{
+                padding: '20px',
+                background: colors.primary,
+                border: `5px solid ${colors.border}`,
+                boxShadow: shadows.brutal,
+              }}
+            >
+              <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, fontSize: '11px', textTransform: 'uppercase', marginBottom: '12px', color: colors.dark }}>
+                BIGGEST SINGLE WIN
+              </div>
+              {hof.biggest ? (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <Avatar addr={hof.biggest.address} size={36} />
+                    <Link
+                      to={`/profile?address=${encodeURIComponent(hof.biggest.address)}`}
+                      style={{
+                        fontFamily: "'JetBrains Mono', monospace",
+                        fontWeight: 700,
+                        fontSize: '13px',
+                        color: colors.dark,
+                        textDecoration: 'none',
+                      }}
+                    >
+                      {hof.biggest.address.slice(0,6)}...{hof.biggest.address.slice(-4)}
+                    </Link>
+                  </div>
+                  <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 900, fontSize: '28px', color: colors.dark }}>
+                    {(Number(hof.biggest.netPrize)/1_000_000).toFixed(2)} STX
+                  </div>
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '11px', opacity: 0.7, marginTop: '4px' }}>
+                    Puzzle #{hof.biggest.puzzleId}
+                  </div>
+                </>
+              ) : (
+                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', opacity: 0.7 }}>—</div>
+              )}
+            </motion.div>
+
+            {/* Most Wins in a Day */}
+            <motion.div
+              initial={{ rotate: 1, scale: 0.9 }}
+              animate={{ rotate: 1, scale: 1 }}
+              whileHover={{ rotate: 0, y: -4, boxShadow: shadows.brutalLarge }}
+              transition={{ type: 'spring', stiffness: 300 }}
+              style={{
+                padding: '20px',
+                background: colors.accent,
+                border: `5px solid ${colors.border}`,
+                boxShadow: shadows.brutal,
+              }}
+            >
+              <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, fontSize: '11px', textTransform: 'uppercase', marginBottom: '12px', color: colors.dark }}>
+                MOST WINS IN A DAY
+              </div>
+              {hof.mostWinsDay ? (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <Avatar addr={hof.mostWinsDay.address} size={36} />
+                    <Link
+                      to={`/profile?address=${encodeURIComponent(hof.mostWinsDay.address)}`}
+                      style={{
+                        fontFamily: "'JetBrains Mono', monospace",
+                        fontWeight: 700,
+                        fontSize: '13px',
+                        color: colors.dark,
+                        textDecoration: 'none',
+                      }}
+                    >
+                      {hof.mostWinsDay.address.slice(0,6)}...{hof.mostWinsDay.address.slice(-4)}
+                    </Link>
+                  </div>
+                  <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 900, fontSize: '28px', color: colors.dark }}>
+                    {hof.mostWinsDay.count} WINS
+                  </div>
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '11px', opacity: 0.7, marginTop: '4px' }}>
+                    {hof.mostWinsDay.day}
+                  </div>
+                </>
+              ) : (
+                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', opacity: 0.7 }}>—</div>
+              )}
+            </motion.div>
+
+            {/* Longest Streak */}
+            <motion.div
+              initial={{ rotate: -1, scale: 0.9 }}
+              animate={{ rotate: 0, scale: 1 }}
+              whileHover={{ rotate: 0, y: -4, boxShadow: shadows.brutalLarge }}
+              transition={{ type: 'spring', stiffness: 300 }}
+              style={{
+                padding: '20px',
+                background: colors.success,
+                border: `5px solid ${colors.border}`,
+                boxShadow: shadows.brutal,
+              }}
+            >
+              <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, fontSize: '11px', textTransform: 'uppercase', marginBottom: '12px', color: colors.dark }}>
+                LONGEST STREAK
+              </div>
+              {hof.longestStreak ? (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <Avatar addr={hof.longestStreak.address} size={36} />
+                    <Link
+                      to={`/profile?address=${encodeURIComponent(hof.longestStreak.address)}`}
+                      style={{
+                        fontFamily: "'JetBrains Mono', monospace",
+                        fontWeight: 700,
+                        fontSize: '13px',
+                        color: colors.dark,
+                        textDecoration: 'none',
+                      }}
+                    >
+                      {hof.longestStreak.address.slice(0,6)}...{hof.longestStreak.address.slice(-4)}
+                    </Link>
+                  </div>
+                  <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 900, fontSize: '28px', color: colors.dark }}>
+                    {hof.longestStreak.length} DAYS
+                  </div>
+                </>
+              ) : (
+                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', opacity: 0.7 }}>—</div>
+              )}
+            </motion.div>
+
+            {/* Fastest Solve */}
+            <motion.div
+              initial={{ rotate: 1, scale: 0.9 }}
+              animate={{ rotate: 1, scale: 1 }}
+              whileHover={{ rotate: 0, y: -4, boxShadow: shadows.brutalLarge }}
+              transition={{ type: 'spring', stiffness: 300 }}
+              style={{
+                padding: '20px',
+                background: colors.secondary,
+                border: `5px solid ${colors.border}`,
+                boxShadow: shadows.brutal,
+              }}
+            >
+              <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, fontSize: '11px', textTransform: 'uppercase', marginBottom: '12px', color: colors.white }}>
+                FASTEST SOLVE EVER
+              </div>
+              {hof.fastest ? (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <Avatar addr={hof.fastest.address} size={36} />
+                    <Link
+                      to={`/profile?address=${encodeURIComponent(hof.fastest.address)}`}
+                      style={{
+                        fontFamily: "'JetBrains Mono', monospace",
+                        fontWeight: 700,
+                        fontSize: '13px',
+                        color: colors.white,
+                        textDecoration: 'none',
+                      }}
+                    >
+                      {hof.fastest.address.slice(0,6)}...{hof.fastest.address.slice(-4)}
+                    </Link>
+                  </div>
+                  <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 900, fontSize: '28px', color: colors.white }}>
+                    {fmtTime(hof.fastest.solveTime)}
+                  </div>
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '11px', opacity: 0.7, marginTop: '4px', color: colors.white }}>
+                    Puzzle #{hof.fastest.puzzleId}
+                  </div>
+                </>
+              ) : (
+                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', opacity: 0.7, color: colors.white }}>—</div>
+              )}
+            </motion.div>
+          </div>
+        </motion.div>
       </div>
     </div>
   );
