@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useQueries, useQuery } from '@tanstack/react-query'
 import { Calendar, CheckCircle2, Clock, Coins, Flame, Hourglass, Medal, Percent, Star, Trophy, Zap } from 'lucide-react'
 import WalletConnect from '../components/WalletConnect'
