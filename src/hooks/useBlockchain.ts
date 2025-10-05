@@ -24,7 +24,8 @@ export function usePuzzleInfo(puzzleId?: number | bigint, enabled = true) {
       return rpcGetPuzzleInfo({ puzzleId: puzzleId!, network });
     },
     enabled: enabled && puzzleId !== undefined && puzzleId !== null,
-    refetchInterval: 10000,
+    refetchInterval: 30000,
+    staleTime: 30000,
     refetchOnWindowFocus: false,
   });
 }
@@ -39,7 +40,8 @@ export function useLeaderboard(puzzleId?: number | bigint, enabled = true) {
       return [...list].sort((a, b) => (a.solveTime < b.solveTime ? -1 : a.solveTime > b.solveTime ? 1 : 0));
     },
     enabled: enabled && puzzleId !== undefined && puzzleId !== null,
-    refetchInterval: 15000,
+    refetchInterval: 60000,
+    staleTime: 30000,
     refetchOnWindowFocus: false,
   });
 }
@@ -55,6 +57,8 @@ export function useUserStats(address?: string, enabled = true) {
     refetchOnWindowFocus: false,
   });
 }
+
+async function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)); }
 
 async function fetchActivePuzzlesInternal(network: NetworkName, senderAddress?: string): Promise<number[]> {
   const { address: contractAddress, name: contractName } = getContractIds(network);
@@ -75,10 +79,12 @@ async function fetchActivePuzzlesInternal(network: NetworkName, senderAddress?: 
   const max = Number(total);
   for (let i = 1; i <= max; i++) {
     try {
-      // Robust approach: read full puzzle info and rely on on-chain isActive flag
       const info = await rpcGetPuzzleInfo({ puzzleId: i, network });
       if (info?.isActive) ids.push(i);
-    } catch {}
+      await sleep(150);
+    } catch {
+      await sleep(200);
+    }
   }
   return ids;
 }
@@ -88,7 +94,8 @@ export function useActivePuzzles() {
   return useQuery<number[]>({
     queryKey: ['active-puzzles', network],
     queryFn: () => fetchActivePuzzlesInternal(network, getAddress() || undefined),
-    refetchInterval: 20000,
+    refetchInterval: 60000,
+    staleTime: 30000,
     refetchOnWindowFocus: false,
   });
 }
