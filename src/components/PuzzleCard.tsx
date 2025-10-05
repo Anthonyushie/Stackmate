@@ -183,6 +183,26 @@ export default function PuzzleCard({
               </span>
             </motion.div>
           )}
+          {!winner && !entered && isActive && (
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              style={{
+                background: colors.success,
+                border: `3px solid ${colors.border}`,
+                boxShadow: shadows.brutalSmall,
+                padding: '6px 12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              <Zap className="h-4 w-4" style={{ color: colors.dark }} />
+              <span style={{ fontWeight: 900, fontSize: '12px', textTransform: 'uppercase', color: colors.dark }}>
+                LIVE
+              </span>
+            </motion.div>
+          )}
         </div>
       </div>
 
@@ -349,7 +369,7 @@ export default function PuzzleCard({
             fontSize: '14px',
             color: ended ? colors.white : colors.dark,
           }}>
-            {ended ? '00:00' : countdown}
+            {ended ? '00:00' : (countdown === '0s' ? 'LIVE' : countdown)}
           </div>
         </div>
       </div>
