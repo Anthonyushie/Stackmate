@@ -19,7 +19,11 @@ import NeoBadge from '../components/neo/NeoBadge';
 import { colors, shadows, animations, getRotation } from '../styles/neo-brutal-theme';
 
 function getContractIds(network: NetworkName) {
-  const id = (network === 'testnet' ? (import.meta as any).env?.VITE_CONTRACT_TESTNET : (import.meta as any).env?.VITE_CONTRACT_MAINNET) as string | undefined;
+  const DEFAULT_TESTNET = 'ST2QK4128H22NH4H8MD2AVP72M0Q72TKS48VB5469.puzzle-pool';
+  let id = (network === 'testnet' ? (import.meta as any).env?.VITE_CONTRACT_TESTNET : (import.meta as any).env?.VITE_CONTRACT_MAINNET) as string | undefined;
+  if (!id || typeof id !== 'string' || !id.includes('.')) {
+    if (network === 'testnet') id = DEFAULT_TESTNET;
+  }
   if (!id || typeof id !== 'string' || !id.includes('.')) throw new Error('Missing contract id env var');
   const [address, name] = id.split('.');
   return { address, name };
