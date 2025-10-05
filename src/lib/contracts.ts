@@ -31,7 +31,11 @@ export interface PuzzleInfo {
 export interface LeaderboardEntry { player: string; solveTime: bigint; isCorrect: boolean; timestamp?: bigint; txId?: string }
 
 const getContractIds = (network: NetworkName): ContractIds => {
-  const id = network === 'testnet' ? (import.meta as any).env?.VITE_CONTRACT_TESTNET : (import.meta as any).env?.VITE_CONTRACT_MAINNET;
+  const DEFAULT_TESTNET = 'ST2QK4128H22NH4H8MD2AVP72M0Q72TKS48VB5469.puzzle-pool';
+  let id = network === 'testnet' ? (import.meta as any).env?.VITE_CONTRACT_TESTNET : (import.meta as any).env?.VITE_CONTRACT_MAINNET;
+  if (!id || typeof id !== 'string' || !id.includes('.')) {
+    if (network === 'testnet') id = DEFAULT_TESTNET;
+  }
   if (!id || typeof id !== 'string' || !id.includes('.')) throw new Error('Missing contract id env var (VITE_CONTRACT_TESTNET/VITE_CONTRACT_MAINNET) like SPXXXX.puzzle-pool');
   const [address, name] = id.split('.');
   return { address, name };
