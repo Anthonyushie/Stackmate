@@ -188,7 +188,7 @@ async function getAddressFromProvider(network: NetworkName): Promise<string | nu
 }
 
 export const useWallet = create<WalletState>((set, get) => ({
-  network: 'testnet',
+  network: 'testnet', // LOCKED TO TESTNET
   providerId: null,
   address: null,
   balance: null,
@@ -253,25 +253,9 @@ export const useWallet = create<WalletState>((set, get) => ({
     set({ providerId: null, address: null, balance: null });
   },
   switchNetwork: async (network) => {
-    set({ network });
-    let addr = getAddressFromStorage(network) ?? (await getAddressFromProvider(network));
-    if (addr && !isValidAddress(addr)) {
-      console.error('[useWallet] Invalid address in switchNetwork:', addr);
-      addr = null;
-    }
-    set({ address: addr });
-
-    if (addr) {
-      try {
-        set({ isFetchingBalance: true });
-        const balance = await fetchStxBalance(addr, network);
-        set({ balance });
-      } finally {
-        set({ isFetchingBalance: false });
-      }
-    } else {
-      set({ balance: null });
-    }
+    // NETWORK LOCKED TO TESTNET - this function is a no-op now
+    console.log('[useWallet] Network switching disabled - app is locked to testnet');
+    return;
   },
   refresh: async () => {
     let addr = getAddressFromStorage(get().network) ?? (await getAddressFromProvider(get().network));

@@ -292,58 +292,30 @@ export default function WalletConnect({ className = '' }: { className?: string }
                   <LogOut className="h-4 w-4" /> DISCONNECT
                 </motion.button>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => switchNetwork('testnet')}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '4px',
-                      padding: '12px',
-                      background: colors.intermediate,
-                      border: network === 'testnet' ? `6px solid ${colors.border}` : `4px solid ${colors.border}`,
-                      boxShadow: shadows.brutalSmall,
-                      cursor: 'pointer',
-                      fontWeight: 900,
-                      fontSize: '10px',
-                      textTransform: 'uppercase',
-                    }}
-                  >
+                <div style={{
+                  background: colors.intermediate,
+                  border: `4px solid ${colors.border}`,
+                  boxShadow: shadows.brutalSmall,
+                  padding: '12px',
+                  textAlign: 'center',
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                  }}>
                     <Network className="h-4 w-4" />
-                    TESTNET
-                  </motion.button>
-
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => switchNetwork('mainnet')}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '4px',
-                      padding: '12px',
-                      background: colors.accent3,
-                      border: network === 'mainnet' ? `6px solid ${colors.border}` : `4px solid ${colors.border}`,
-                      boxShadow: shadows.brutalSmall,
-                      cursor: 'pointer',
-                      fontWeight: 900,
-                      fontSize: '10px',
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    <Network className="h-4 w-4" />
-                    MAINNET
-                  </motion.button>
+                    <span style={{ fontWeight: 900, fontSize: '12px', textTransform: 'uppercase' }}>
+                      TESTNET ONLY
+                    </span>
+                  </div>
                 </div>
 
                 <motion.a
                   whileHover={{ x: -2, y: -2 }}
                   whileTap={{ scale: 0.98 }}
-                  href={`https://explorer.hiro.so/${network === 'testnet' ? 'testnet/' : ''}address/${address}?chain=stacks`}
+                  href={`https://explorer.hiro.so/testnet/address/${address}?chain=stacks`}
                   target="_blank"
                   rel="noreferrer"
                   style={{

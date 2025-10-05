@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useQueries, useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Trophy, Zap, Clock, Users, Coins, Crown, Target, Sparkles, Flame, Star } from 'lucide-react';
+import { Trophy, Zap, Clock, Users, Coins, Crown, Target, Sparkles, Flame, Star, Network } from 'lucide-react';
 import WalletConnect from '../components/WalletConnect';
 import NotificationBell from '../components/NotificationBell';
 import useWallet from '../hooks/useWallet';
@@ -221,21 +221,48 @@ export default function Home() {
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
         {/* Header */}
         <header className="flex items-center justify-between mb-10 sm:mb-16">
-          <motion.div
-            initial={{ rotate: -2, x: -20, opacity: 0 }}
-            animate={{ rotate: 2, x: 0, opacity: 1 }}
-            transition={{ type: 'spring', stiffness: 300 }}
-            style={{
-              background: colors.primary,
-              border: `6px solid ${colors.border}`,
-              boxShadow: shadows.brutal,
-              padding: '16px 32px',
-            }}
-          >
-            <Link to="/" className="text-brutal" style={{ fontSize: '32px', color: colors.dark, textDecoration: 'none' }}>
-              STACKMATE
-            </Link>
-          </motion.div>
+          <div className="flex items-center gap-3">
+            <motion.div
+              initial={{ rotate: -2, x: -20, opacity: 0 }}
+              animate={{ rotate: 2, x: 0, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 300 }}
+              style={{
+                background: colors.primary,
+                border: `6px solid ${colors.border}`,
+                boxShadow: shadows.brutal,
+                padding: '16px 32px',
+              }}
+            >
+              <Link to="/" className="text-brutal" style={{ fontSize: '32px', color: colors.dark, textDecoration: 'none' }}>
+                STACKMATE
+              </Link>
+            </motion.div>
+            
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 300, delay: 0.2 }}
+              style={{
+                background: colors.intermediate,
+                border: `4px solid ${colors.border}`,
+                boxShadow: shadows.brutalSmall,
+                padding: '8px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              <Network className="h-4 w-4" />
+              <span style={{ 
+                fontFamily: "'Space Grotesk', sans-serif",
+                fontWeight: 900, 
+                fontSize: '14px', 
+                textTransform: 'uppercase' 
+              }}>
+                TESTNET
+              </span>
+            </motion.div>
+          </div>
 
           <div className="flex items-center gap-3">
             <Link to="/leaderboard">
