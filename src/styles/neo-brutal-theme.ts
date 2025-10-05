@@ -173,15 +173,23 @@ export function getRotation(index: number): number {
   return rotations[index % rotations.length];
 }
 
+export function normalizeDifficulty(difficulty: string): 'beginner' | 'intermediate' | 'expert' {
+  const raw = (difficulty || '').toString().toLowerCase().trim();
+  const unquoted = raw.replace(/^['"]+|['"]+$/g, '');
+  if (unquoted === 'intermediate') return 'intermediate';
+  if (unquoted === 'expert') return 'expert';
+  return 'beginner';
+}
+
 export function getDifficultyColor(difficulty: string): string {
-  const d = difficulty.toLowerCase();
+  const d = normalizeDifficulty(difficulty);
   if (d === 'intermediate') return colors.intermediate;
   if (d === 'expert') return colors.expert;
   return colors.beginner;
 }
 
 export function getDifficultyGradient(difficulty: string): string {
-  const d = difficulty.toLowerCase();
+  const d = normalizeDifficulty(difficulty);
   if (d === 'intermediate') return gradients.intermediate;
   if (d === 'expert') return gradients.expert;
   return gradients.beginner;

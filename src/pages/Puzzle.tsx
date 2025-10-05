@@ -8,7 +8,7 @@ import { getPuzzlesByDifficulty, type Puzzle } from '../lib/puzzles-db';
 import { useQuery } from '@tanstack/react-query';
 import { getPuzzleInfo, type PuzzleInfo } from '../lib/contracts';
 import Header from '../components/Header';
-import { colors, shadows, getDifficultyColor } from '../styles/neo-brutal-theme';
+import { colors, shadows, getDifficultyColor, normalizeDifficulty } from '../styles/neo-brutal-theme';
 import NeoButton from '../components/neo/NeoButton';
 import NeoBadge from '../components/neo/NeoBadge';
 import { microToStx } from '../lib/stacks';
@@ -29,14 +29,14 @@ export default function PuzzlePage() {
 
   const chosen = useMemo(() => {
     if (!info) return null as Puzzle | null;
-    const d = (info.difficulty || '').toLowerCase();
-    const list = getPuzzlesByDifficulty((d as any) || 'beginner');
+    const nd = normalizeDifficulty(info.difficulty || 'beginner');
+    const list = getPuzzlesByDifficulty(nd as any);
     if (!list.length) return null;
     const idx = Math.abs((numericId || 1) - 1) % list.length;
     return list[idx];
   }, [info, numericId]);
 
-  const difficultyColor = getDifficultyColor(info?.difficulty?.toLowerCase() as any);
+  const difficultyColor = getDifficultyColor((info?.difficulty || '') as any);
 
   return (
     <div style={{ minHeight: '100vh', background: colors.light, position: 'relative', overflow: 'hidden' }}>

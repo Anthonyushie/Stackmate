@@ -16,7 +16,7 @@ import PuzzleCardSkeleton from '../components/skeletons/PuzzleCardSkeleton';
 import NeoButton from '../components/neo/NeoButton';
 import NeoCard from '../components/neo/NeoCard';
 import NeoBadge from '../components/neo/NeoBadge';
-import { colors, shadows, animations, getRotation } from '../styles/neo-brutal-theme';
+import { colors, shadows, animations, getRotation, normalizeDifficulty } from '../styles/neo-brutal-theme';
 
 function getContractIds(network: NetworkName) {
   const DEFAULT_TESTNET = 'ST2QK4128H22NH4H8MD2AVP72M0Q72TKS48VB5469.puzzle-pool';
@@ -84,7 +84,7 @@ export default function Home() {
   }, [activeIds, infoQueries]);
 
   const byDifficulty = useMemo(() => {
-    const pick = (d: string) => pairs.find((p) => (p.info.difficulty || '').toLowerCase() === d) || null;
+    const pick = (d: string) => pairs.find((p) => normalizeDifficulty(p.info.difficulty || '') === d) || null;
     return {
       beginner: pick('beginner'),
       intermediate: pick('intermediate'),
@@ -567,7 +567,7 @@ export default function Home() {
             {allActive.map((p, idx) => {
               const info = p.info;
               const entered = Boolean(allEntryQueries[idx]?.data);
-              const dKey = (info.difficulty || '').toLowerCase() as 'beginner'|'intermediate'|'expert';
+              const dKey = normalizeDifficulty(info.difficulty || '') as 'beginner'|'intermediate'|'expert';
               return (
                 <NeoCard key={p.id} rotate={getRotation(idx)} hoverable>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', gap: '12px' }}>
