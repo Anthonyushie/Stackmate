@@ -140,6 +140,29 @@ export default function Home() {
     })),
   });
 
+  const allActive = useMemo(() => [...pairs].sort((a, b) => b.id - a.id), [pairs]);
+
+  const allEntryQueries = useQueries({
+    queries: allActive.map((p) => ({
+      queryKey: ['entry', network, String(p.id), address, 'all'],
+      enabled: Boolean(address),
+      queryFn: async () => {
+        if (!address) return null;
+        const { address: contractAddress, name: contractName } = getContractIds(network);
+        const stxNetwork = getNetwork(network);
+        const cv: any = await fetchCallReadOnlyFunction({
+          contractAddress,
+          contractName,
+          functionName: 'get-entry',
+          functionArgs: [uintCV(p.id), standardPrincipalCV(address)],
+          senderAddress: address,
+          network: stxNetwork,
+        });
+        return cv?.type === ClarityType.ResponseOk ? cv.value : null;
+      },
+    })),
+  });
+
   const globalStatsQ = useQuery({
     queryKey: ['global-stats', network],
     queryFn: async () => {
@@ -498,6 +521,95 @@ export default function Home() {
                     setEnterOpen(true);
                   }}
                 />
+              );
+            })}
+          </div>
+        </section>
+
+        {/* All Active Puzzles */}
+        <section id="all-active" className="mb-16 sm:mb-24">
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            style={{
+              background: colors.dark,
+              border: `6px solid ${colors.border}`,
+              boxShadow: shadows.brutal,
+              padding: '16px 32px',
+              display: 'inline-block',
+              marginBottom: '24px',
+              transform: 'rotate(1deg)',
+            }}
+          >
+            <h2 className="text-brutal" style={{ fontSize: '36px', color: colors.accent1 }}>
+              ALL ACTIVE PUZZLES
+            </h2>
+          </motion.div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {(activeLoading || infoQueries.some(q => q.isLoading)) && (
+              <>
+                <PuzzleCardSkeleton />
+                <PuzzleCardSkeleton />
+                <PuzzleCardSkeleton />
+              </>
+            )}
+            {!activeLoading && allActive.length === 0 && (
+              <NeoCard color={colors.white} rotate={-1} hoverable={false} style={{ gridColumn: '1 / -1' }}>
+                <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 900, fontSize: '20px' }}>No active puzzles</div>
+              </NeoCard>
+            )}
+            {allActive.map((p, idx) => {
+              const info = p.info;
+              const entered = Boolean(allEntryQueries[idx]?.data);
+              const dKey = (info.difficulty || '').toLowerCase() as 'beginner'|'intermediate'|'expert';
+              return (
+                <NeoCard key={p.id} rotate={getRotation(idx)} hoverable>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', gap: '12px' }}>
+                    <div>
+                      <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '12px', textTransform: 'uppercase', opacity: 0.7 }}>Puzzle</div>
+                      <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 900, fontSize: '28px', letterSpacing: '-0.02em' }}>#{p.id}</div>
+                    </div>
+                    <NeoBadge color={colors.dark} size="md">{String(info.difficulty || '').toUpperCase()}</NeoBadge>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '16px' }}>
+                    <div style={{ background: colors.primary, border: `4px solid ${colors.border}`, padding: '12px' }}>
+                      <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, fontSize: '10px', textTransform: 'uppercase', marginBottom: '4px' }}>Entry Fee</div>
+                      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 900, fontSize: '16px' }}>{microToStx(info.stakeAmount)} STX</div>
+                    </div>
+                    <div style={{ background: colors.success, border: `4px solid ${colors.border}`, padding: '12px' }}>
+                      <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, fontSize: '10px', textTransform: 'uppercase', marginBottom: '4px' }}>Prize Pool</div>
+                      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 900, fontSize: '16px' }}>{microToStx(info.prizePool)} STX</div>
+                    </div>
+                    <div style={{ background: colors.accent, border: `4px solid ${colors.border}`, padding: '12px' }}>
+                      <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, fontSize: '10px', textTransform: 'uppercase', marginBottom: '4px' }}>Players</div>
+                      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 900, fontSize: '16px' }}>{String(info.entryCount)}</div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '10px', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+                    <Link to={`/puzzle/${p.id}`}>
+                      <NeoButton variant="secondary" size="sm">View</NeoButton>
+                    </Link>
+                    <NeoButton
+                      variant={entered ? 'secondary' : 'primary'}
+                      size="sm"
+                      disabled={!info.isActive || entered}
+                      onClick={() => {
+                        setEnterData({
+                          puzzleId: p.id,
+                          difficulty: dKey,
+                          entryFeeMicro: info.stakeAmount,
+                          prizePoolMicro: info.prizePool,
+                          alreadyEntered: entered,
+                        });
+                        setEnterOpen(true);
+                      }}
+                    >
+                      {entered ? 'Entered' : 'Enter'}
+                    </NeoButton>
+                  </div>
+                </NeoCard>
               );
             })}
           </div>
