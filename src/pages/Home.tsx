@@ -38,9 +38,9 @@ function useStacksHeight(network: NetworkName) {
       const h = Number(j?.stacks_tip_height ?? j?.stacks_tip?.height ?? j?.burn_block_height ?? 0);
       return Number.isFinite(h) ? h : 0;
     },
-    refetchInterval: 10000,
+    refetchInterval: 60000,
     refetchOnWindowFocus: false,
-    staleTime: 8000,
+    staleTime: 45000,
   });
 }
 
@@ -73,7 +73,8 @@ export default function Home() {
       queryKey: ['puzzle-info', network, String(id)],
       queryFn: () => getPuzzleInfo({ puzzleId: id, network }),
       enabled: activeIds.length > 0,
-      refetchInterval: 15000,
+      refetchInterval: 45000,
+      staleTime: 45000,
       refetchOnWindowFocus: false,
     })),
   });
@@ -116,7 +117,8 @@ export default function Home() {
       queryKey: ['leaderboard', network, String(d.id)],
       queryFn: () => (d.id ? getLeaderboard({ puzzleId: d.id, network }) : Promise.resolve([])),
       enabled: Boolean(d.id),
-      refetchInterval: 15000,
+      refetchInterval: 60000,
+      staleTime: 45000,
       refetchOnWindowFocus: false,
     })),
   });
@@ -127,8 +129,10 @@ export default function Home() {
     queries: displayList.map((d) => ({
       queryKey: ['entry', network, String(d.id), address],
       enabled: Boolean(d.id && address),
+      refetchInterval: 60000,
+      staleTime: 45000,
       queryFn: async () => {
-        if (!d.id || !address) return null;
+        if (!d.id || !address) return false;
         const { address: contractAddress, name: contractName } = getContractIds(network);
         const stxNetwork = getNetwork(network);
         const cv: any = await fetchCallReadOnlyFunction({
@@ -152,8 +156,10 @@ export default function Home() {
     queries: allActive.map((p) => ({
       queryKey: ['entry', network, String(p.id), address, 'all'],
       enabled: Boolean(address),
+      refetchInterval: 60000,
+      staleTime: 45000,
       queryFn: async () => {
-        if (!address) return null;
+        if (!address) return false;
         const { address: contractAddress, name: contractName } = getContractIds(network);
         const stxNetwork = getNetwork(network);
         const cv: any = await fetchCallReadOnlyFunction({
@@ -191,7 +197,8 @@ export default function Home() {
       
       return { totalPuzzles, totalStaked, totalPlayers };
     },
-    refetchInterval: 30000,
+    refetchInterval: 90000,
+    staleTime: 60000,
   });
 
   const stats = globalStatsQ.data || { totalPuzzles: 0, totalStaked: 0n, totalPlayers: 0 };
