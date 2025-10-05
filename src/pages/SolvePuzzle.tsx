@@ -7,11 +7,10 @@ import { Trophy, Users, Lightbulb, RotateCcw, FlagTriangleRight, X, PartyPopper,
 import useWallet from '../hooks/useWallet';
 import { getPuzzlesByDifficulty, type Puzzle, hashSolution } from '../lib/puzzles-db';
 import { getPuzzleInfo, getLeaderboard, type LeaderboardEntry } from '../lib/contracts';
-import { getApiBaseUrl, microToStx, type NetworkName, getNetwork } from '../lib/stacks';
+import { microToStx, type NetworkName, getNetwork } from '../lib/stacks';
 import { fetchCallReadOnlyFunction, uintCV, standardPrincipalCV, ClarityType } from '@stacks/transactions';
 import { useSubmitSolution } from '../hooks/useContract';
 import ShareButton from '../components/ShareButton';
-import { formatSolveTime } from '../lib/time-utils';
 import ChessBoardSkeleton from '../components/skeletons/ChessBoardSkeleton';
 import LiveLeaderboard from '../components/LiveLeaderboard';
 import { colors, shadows, getDifficultyColor } from '../styles/neo-brutal-theme';
@@ -261,7 +260,7 @@ export default function SolvePuzzle() {
         setSubmitting(true);
         setSubmitError(null);
         const hash = await hashSolution(history);
-        const res: any = await submit.mutateAsync({ puzzleId: numericId, solution: hash, solveTime: totalTime, onStatus: (s, d) => { if (d?.txId) setTxId(d.txId); } });
+        const res: any = await submit.mutateAsync({ puzzleId: numericId, solution: hash, solveTime: totalTime, onStatus: (_s, d) => { if (d?.txId) setTxId(d.txId); } });
         if (!res?.ok) {
           setSubmitError(res?.error || 'Submit failed');
         } else {
@@ -300,7 +299,7 @@ export default function SolvePuzzle() {
   }, [lastMove, hintMove]);
 
   const customPieces = useMemo(() => {
-    const map: Record<string, (props: { squareWidth: number }) => JSX.Element> = {};
+    const map: Record<string, (props: { squareWidth: number }) => React.ReactElement> = {};
     (['wK','wQ','wR','wB','wN','wP','bK','bQ','bR','bB','bN','bP'] as const).forEach((k) => {
       map[k] = ({ squareWidth }) => (
         <div
@@ -363,7 +362,7 @@ export default function SolvePuzzle() {
 
         {/* Main Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(1, 1fr)', gap: '24px', '@media (min-width: 1024px)': { gridTemplateColumns: '2fr 1fr' } }}>
+          <div style={{ display: 'grid', gridTemplateColumns: window.innerWidth >= 1024 ? '2fr 1fr' : '1fr', gap: '24px' }}>
             {/* Board Section */}
             <div ref={boardWrapRef}>
               <motion.div

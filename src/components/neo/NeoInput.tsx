@@ -35,8 +35,7 @@ export default function NeoInput({
         </label>
       )}
 
-      <motion.input
-        animate={error ? animations.errorShake : {}}
+      <input
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
         style={{

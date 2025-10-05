@@ -1,16 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Trophy, Flame, Zap, Crown, Search } from 'lucide-react';
+import { Trophy, Flame, Zap, Crown } from 'lucide-react';
 import useWallet from '../hooks/useWallet';
 import { getPuzzleInfo, getLeaderboard, type PuzzleInfo, type LeaderboardEntry } from '../lib/contracts';
-import { fetchCallReadOnlyFunction, ClarityType, uintCV } from '@stacks/transactions';
+import { fetchCallReadOnlyFunction, ClarityType } from '@stacks/transactions';
 import { getNetwork, type NetworkName } from '../lib/stacks';
 import { Link } from 'react-router-dom';
 import LeaderboardSkeleton from '../components/skeletons/LeaderboardSkeleton';
 import Header from '../components/Header';
 import { colors, shadows, getDifficultyColor } from '../styles/neo-brutal-theme';
-import NeoButton from '../components/neo/NeoButton';
 import NeoBadge from '../components/neo/NeoBadge';
 import NeoInput from '../components/neo/NeoInput';
 
@@ -421,7 +420,7 @@ export default function LeaderboardPage() {
                       {p.address.slice(0, 8)}...{p.address.slice(-6)}
                     </Link>
                     {isYou && (
-                      <NeoBadge color={colors.dark} size="sm" style={{ marginTop: '4px' }}>
+                      <NeoBadge color={colors.dark} size="sm">
                         YOU
                       </NeoBadge>
                     )}

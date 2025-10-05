@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Trophy, Users, ArrowLeft, Coins } from 'lucide-react';
 import useWallet from '../hooks/useWallet';

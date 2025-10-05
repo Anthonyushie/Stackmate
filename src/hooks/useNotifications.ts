@@ -82,7 +82,6 @@ function showDesktopNotification(n: NotificationItem) {
       body: n.message,
       icon: '/vite.svg',
       tag: n.id,
-      renotify: false,
       silent: true,
     });
     notif.onclick = () => {
@@ -105,13 +104,7 @@ export default function useNotifications() {
     return [];
   });
 
-  const metaRef = useRef<MetaState>(() => {
-    try {
-      const raw = localStorage.getItem(keys.meta);
-      if (raw) return JSON.parse(raw);
-    } catch {}
-    return {};
-  }) as React.MutableRefObject<MetaState>;
+  const metaRef = useRef<MetaState>({}) as React.MutableRefObject<MetaState>;
 
   useEffect(() => {
     // reload when identity key changes
