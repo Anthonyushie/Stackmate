@@ -203,7 +203,7 @@ export default function LiveLeaderboard({ puzzleId, className = '', limit = 10, 
                       {truncateMiddle(row.player || '')}
                     </div>
                     {isYou && (
-                      <NeoBadge color={colors.dark} size="sm" style={{ marginTop: '4px' }}>
+                      <NeoBadge color={colors.dark} size="sm">
                         YOU
                       </NeoBadge>
                     )}
@@ -285,7 +285,7 @@ export default function LiveLeaderboard({ puzzleId, className = '', limit = 10, 
                 >
                   {truncateMiddle(userEntry.player || '')}
                 </div>
-                <NeoBadge color={colors.dark} size="sm" style={{ marginTop: '4px' }}>
+                <NeoBadge color={colors.dark} size="sm">
                   YOU
                 </NeoBadge>
               </div>

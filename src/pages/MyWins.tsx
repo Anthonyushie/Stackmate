@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useQueries, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Calendar, CheckCircle2, Clock, Trophy, Wallet, X, PartyPopper, Flame } from 'lucide-react';
+import { CheckCircle2, Clock, Trophy, X, PartyPopper, Flame } from 'lucide-react';
 import useWallet from '../hooks/useWallet';
-import { fetchCallReadOnlyFunction, uintCV, standardPrincipalCV, ClarityType } from '@stacks/transactions';
+import { fetchCallReadOnlyFunction, standardPrincipalCV, ClarityType } from '@stacks/transactions';
 import { getApiBaseUrl, microToStx, type NetworkName } from '../lib/stacks';
 import { getPuzzleInfo, type PuzzleInfo } from '../lib/contracts';
 import ClaimPrizeModal from '../components/ClaimPrizeModal';
@@ -13,7 +13,6 @@ import Header from '../components/Header';
 import { colors, shadows, getDifficultyColor } from '../styles/neo-brutal-theme';
 import NeoButton from '../components/neo/NeoButton';
 import NeoBadge from '../components/neo/NeoBadge';
-import NeoCard from '../components/neo/NeoCard';
 
 type WinItem = {
   id: number;
@@ -61,7 +60,7 @@ export default function MyWins() {
   const address = getAddress() || '';
   const [wins, setWins] = useState<WinItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [_error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'claimable' | 'claimed' | 'all'>('claimable');
   const [claimOpen, setClaimOpen] = useState(false);
   const [selected, setSelected] = useState<WinItem | null>(null);
