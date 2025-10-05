@@ -139,7 +139,9 @@ export default function Home() {
           senderAddress: address,
           network: stxNetwork,
         });
-        return cv?.type === ClarityType.ResponseOk ? cv.value : null;
+        if (cv?.type !== ClarityType.ResponseOk) return false;
+        const opt = cv.value;
+        return opt?.type === ClarityType.OptionalSome;
       },
     })),
   });
@@ -162,7 +164,9 @@ export default function Home() {
           senderAddress: address,
           network: stxNetwork,
         });
-        return cv?.type === ClarityType.ResponseOk ? cv.value : null;
+        if (cv?.type !== ClarityType.ResponseOk) return false;
+        const opt = cv.value;
+        return opt?.type === ClarityType.OptionalSome;
       },
     })),
   });
@@ -499,7 +503,7 @@ export default function Home() {
               const deadBlock = info ? Number(info.deadline) : 0;
               const blocksLeft = Math.max(0, deadBlock - height);
               const approxDeadline = Date.now() + blocksLeft * 600_000;
-              const entered = Boolean(entryQueries[idx]?.data);
+              const entered = Boolean(entryQueries[idx]?.data === true);
               const winner = info?.winner && address && info.winner.toLowerCase() === address.toLowerCase();
               return (
                 <PuzzleCard
@@ -566,7 +570,7 @@ export default function Home() {
             )}
             {allActive.map((p, idx) => {
               const info = p.info;
-              const entered = Boolean(allEntryQueries[idx]?.data);
+              const entered = Boolean(allEntryQueries[idx]?.data === true);
               const dKey = normalizeDifficulty(info.difficulty || '') as 'beginner'|'intermediate'|'expert';
               return (
                 <NeoCard key={p.id} rotate={getRotation(idx)} hoverable>
