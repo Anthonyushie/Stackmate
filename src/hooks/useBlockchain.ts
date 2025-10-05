@@ -65,23 +65,15 @@ async function fetchActivePuzzlesInternal(network: NetworkName, senderAddress?: 
     network: stxNetwork,
   });
   const ok = countCv.type === ClarityType.ResponseOk ? (countCv as any).value : null;
-  const total = ok ? (ok as any).value as bigint : 0n;
+  const total = ok ? ((ok as any).value as bigint) : 0n;
   if (total <= 0n) return [];
   const ids: number[] = [];
   const max = Number(total);
   for (let i = 1; i <= max; i++) {
     try {
-      const cv = await fetchCallReadOnlyFunction({
-        contractAddress,
-        contractName,
-        functionName: 'is-puzzle-active',
-        functionArgs: [uintCV(i)],
-        senderAddress: sender,
-        network: stxNetwork,
-      });
-      const v = cv.type === ClarityType.ResponseOk ? (cv as any).value : null;
-      const active = v ? Boolean((v as any).value) : false;
-      if (active) ids.push(i);
+      // Robust approach: read full puzzle info and rely on on-chain isActive flag
+      const info = await rpcGetPuzzleInfo({ puzzleId: i, network });
+      if (info?.isActive) ids.push(i);
     } catch {}
   }
   return ids;
