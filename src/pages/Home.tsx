@@ -458,6 +458,7 @@ export default function Home() {
                   deadline={approxDeadline}
                   entered={entered}
                   winner={Boolean(winner)}
+                  isActive={Boolean(info?.isActive)}
                   onEnter={async () => {
                     if (!id || !info) return;
                     setEnterData({

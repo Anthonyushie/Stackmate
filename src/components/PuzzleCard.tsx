@@ -16,6 +16,7 @@ export interface PuzzleCardProps {
   onEnter: () => Promise<void> | void;
   entered?: boolean;
   winner?: boolean;
+  isActive?: boolean;
   className?: string;
 }
 
@@ -72,11 +73,12 @@ export default function PuzzleCard({
   onEnter,
   entered = false,
   winner = false,
+  isActive = true,
   className = '',
 }: PuzzleCardProps) {
   const bgColor = getDifficultyColor(difficulty);
-  const { label: countdown, secondsLeft } = useCountdown(deadline);
-  const ended = secondsLeft <= 0;
+  const { label: countdown } = useCountdown(deadline);
+  const ended = isActive === false;
 
   const [loading, setLoading] = useState(false);
   const [pulse, setPulse] = useState(false);
