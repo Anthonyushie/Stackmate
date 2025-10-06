@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, Coins, Loader2, Shield, Wallet, X, Zap } from 'lucide-react';
 import { microToStx } from '../lib/stacks';
@@ -109,14 +110,15 @@ export default function EnterPuzzleModal({ isOpen, onClose, puzzleId, difficulty
 
   const diffColor = getDifficultyColor(difficulty);
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 flex items-center justify-center p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          style={{ zIndex: 9999 }}
         >
           <div 
             className="absolute inset-0 bg-black/70 backdrop-blur-sm" 
@@ -421,6 +423,7 @@ export default function EnterPuzzleModal({ isOpen, onClose, puzzleId, difficulty
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
