@@ -379,7 +379,11 @@ export default function PuzzleCard({
         whileHover={canEnter ? { scale: 1.02, y: -2 } : {}}
         whileTap={canEnter ? { scale: 0.98, y: 2 } : {}}
         onClick={async () => {
-          if (!canEnter) return;
+          console.log('[PuzzleCard] Button clicked', { canEnter, loading, entered, ended });
+          if (!canEnter) {
+            console.warn('[PuzzleCard] Button click blocked: canEnter is false', { loading, entered, ended });
+            return;
+          }
           try {
             setLoading(true);
             await Promise.resolve(onEnter());
