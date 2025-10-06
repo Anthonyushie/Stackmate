@@ -4,8 +4,12 @@ const originalFetch = window.fetch;
 
 const isDev = import.meta.env.DEV;
 
+async function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 if (isDev) {
-  window.fetch = function (input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  window.fetch = async function (input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
     let url: string;
     
     if (typeof input === 'string') {
@@ -18,6 +22,8 @@ if (isDev) {
       url = String(input);
     }
 
+    const isHiroRequest = url.includes('api.testnet.hiro.so') || url.includes('api.hiro.so');
+
     // Intercept Hiro API calls and route through proxy
     if (url.includes('api.testnet.hiro.so')) {
       url = url.replace('https://api.testnet.hiro.so', '/hiro');
@@ -27,7 +33,47 @@ if (isDev) {
       console.log('[fetch-intercept] Proxying mainnet request:', url);
     }
 
-    // Call original fetch with modified URL
+    // Retry logic for Hiro requests
+    if (isHiroRequest) {
+      const maxRetries = 3;
+      let delay = 1000;
+
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          let response: Response;
+
+          if (typeof input === 'string') {
+            response = await originalFetch(url, init);
+          } else if (input instanceof URL) {
+            response = await originalFetch(new URL(url), init);
+          } else if (input instanceof Request) {
+            response = await originalFetch(new Request(url, input), init);
+          } else {
+            response = await originalFetch(url, init);
+          }
+
+          // Retry on 429 or 5xx
+          if ((response.status === 429 || response.status >= 500) && attempt < maxRetries) {
+            console.warn(`[fetch-intercept] ${response.status} on ${url}, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`);
+            await sleep(delay);
+            delay = Math.min(delay * 2, 10000);
+            continue;
+          }
+
+          return response;
+        } catch (err) {
+          if (attempt < maxRetries) {
+            console.warn(`[fetch-intercept] Network error on ${url}, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`, err);
+            await sleep(delay);
+            delay = Math.min(delay * 2, 10000);
+            continue;
+          }
+          throw err;
+        }
+      }
+    }
+
+    // Non-Hiro requests - pass through normally
     if (typeof input === 'string') {
       return originalFetch(url, init);
     } else if (input instanceof URL) {
@@ -39,7 +85,7 @@ if (isDev) {
     return originalFetch(url, init);
   };
 
-  console.log('[fetch-intercept] Dev mode: Hiro API calls will be proxied through Vite');
+  console.log('[fetch-intercept] Dev mode: Hiro API calls will be proxied through Vite with retry on 429/5xx');
 }
 
 export {};
