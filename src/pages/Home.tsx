@@ -525,14 +525,20 @@ export default function Home() {
                   winner={Boolean(winner)}
                   isActive={Boolean(info?.isActive)}
                   onEnter={async () => {
-                    if (!id || !info) return;
-                    setEnterData({
+                    console.log('[Home] onEnter clicked', { id, info, entered, d });
+                    if (!id || !info) {
+                      console.warn('[Home] onEnter blocked: missing id or info', { id, info });
+                      return;
+                    }
+                    const data = {
                       puzzleId: id,
                       difficulty: d.key,
                       entryFeeMicro: info.stakeAmount,
                       prizePoolMicro: info.prizePool,
                       alreadyEntered: entered,
-                    });
+                    };
+                    console.log('[Home] Setting enterData and enterOpen', data);
+                    setEnterData(data);
                     setEnterOpen(true);
                   }}
                 />
@@ -611,13 +617,16 @@ export default function Home() {
                       size="sm"
                       disabled={!info.isActive || entered}
                       onClick={() => {
-                        setEnterData({
+                        console.log('[Home/AllActive] Enter clicked', { puzzleId: p.id, info, entered });
+                        const data = {
                           puzzleId: p.id,
                           difficulty: dKey,
                           entryFeeMicro: info.stakeAmount,
                           prizePoolMicro: info.prizePool,
                           alreadyEntered: entered,
-                        });
+                        };
+                        console.log('[Home/AllActive] Setting enterData and enterOpen', data);
+                        setEnterData(data);
                         setEnterOpen(true);
                       }}
                     >
