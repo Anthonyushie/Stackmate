@@ -1,4 +1,4 @@
-import { StacksMainnet, StacksTestnet, type StacksNetwork } from '@stacks/network';
+import { STACKS_MAINNET, STACKS_TESTNET, type StacksNetwork } from '@stacks/network';
 import { fetchWithRetry } from './api-client';
 
 export type NetworkName = 'mainnet' | 'testnet';
@@ -13,25 +13,35 @@ export interface NetworkConfig {
 export const NETWORKS: Record<NetworkName, NetworkConfig> = {
   mainnet: {
     name: 'mainnet',
-    network: new StacksMainnet(),
+    network: STACKS_MAINNET,
     apiBaseUrl: 'https://api.hiro.so',
     explorerBaseUrl: 'https://explorer.hiro.so',
   },
   testnet: {
     name: 'testnet',
-    network: new StacksTestnet(),
+    network: STACKS_TESTNET,
     apiBaseUrl: 'https://api.testnet.hiro.so',
     explorerBaseUrl: 'https://explorer.hiro.so/testnet',
   },
 };
 
 export const getNetwork = (name: NetworkName): StacksNetwork => {
+  const baseNetwork = NETWORKS[name].network;
   const isDev = typeof window !== 'undefined' && (import.meta as any).env?.DEV;
   if (isDev) {
     const proxyUrl = name === 'testnet' ? 'http://localhost:5173/hiro' : 'http://localhost:5173/hiro-mainnet';
-    return name === 'testnet' ? new StacksTestnet({ url: proxyUrl }) : new StacksMainnet({ url: proxyUrl });
+    return {
+      ...baseNetwork,
+      coreApiUrl: proxyUrl,
+      bnsLookupUrl: proxyUrl,
+      broadcastEndpoint: `${proxyUrl}/v2/transactions`,
+      transferFeeEstimateEndpoint: `${proxyUrl}/v2/fees/transfer`,
+      accountEndpoint: `${proxyUrl}/v2/accounts`,
+      contractAbiEndpoint: `${proxyUrl}/v2/contracts/interface`,
+      readOnlyFunctionCallEndpoint: `${proxyUrl}/v2/contracts/call-read`,
+    } as StacksNetwork;
   }
-  return NETWORKS[name].network;
+  return baseNetwork;
 };
 export const getApiBaseUrl = (name: NetworkName): string => {
   const isDev = typeof window !== 'undefined' && (import.meta as any).env?.DEV;
