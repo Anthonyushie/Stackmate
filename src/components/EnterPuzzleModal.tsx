@@ -42,6 +42,7 @@ async function toastMsg(message: string, type: 'success' | 'error' | 'info' = 'i
 }
 
 export default function EnterPuzzleModal({ isOpen, onClose, puzzleId, difficulty, entryFeeMicro, prizePoolMicro, alreadyEntered = false }: EnterPuzzleModalProps) {
+  console.log('[EnterPuzzleModal] Render', { isOpen, puzzleId, difficulty, entryFeeMicro, prizePoolMicro, alreadyEntered });
   const navigate = useNavigate();
   const { network, balance, address } = useWallet();
   const enter = useEnterPuzzle();
