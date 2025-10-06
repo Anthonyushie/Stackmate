@@ -321,7 +321,7 @@ export default function useNotifications() {
     };
 
     run();
-    id = setInterval(run, 30_000);
+    id = setInterval(run, 60_000);
 
     const onVis = () => { if (!stopped && document.visibilityState === 'visible') run(); };
     document.addEventListener('visibilitychange', onVis);
