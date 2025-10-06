@@ -1,4 +1,5 @@
-import { STACKS_MAINNET, STACKS_TESTNET, type StacksNetwork } from '@stacks/network';
+import { StacksMainnet, StacksTestnet, type StacksNetwork } from '@stacks/network';
+import { fetchWithRetry } from './api-client';
 
 export type NetworkName = 'mainnet' | 'testnet';
 
@@ -12,20 +13,33 @@ export interface NetworkConfig {
 export const NETWORKS: Record<NetworkName, NetworkConfig> = {
   mainnet: {
     name: 'mainnet',
-    network: STACKS_MAINNET,
+    network: new StacksMainnet(),
     apiBaseUrl: 'https://api.hiro.so',
     explorerBaseUrl: 'https://explorer.hiro.so',
   },
   testnet: {
     name: 'testnet',
-    network: STACKS_TESTNET,
+    network: new StacksTestnet(),
     apiBaseUrl: 'https://api.testnet.hiro.so',
     explorerBaseUrl: 'https://explorer.hiro.so/testnet',
   },
 };
 
-export const getNetwork = (name: NetworkName): StacksNetwork => NETWORKS[name].network;
-export const getApiBaseUrl = (name: NetworkName): string => NETWORKS[name].apiBaseUrl;
+export const getNetwork = (name: NetworkName): StacksNetwork => {
+  const isDev = typeof window !== 'undefined' && (import.meta as any).env?.DEV;
+  if (isDev) {
+    const proxyUrl = name === 'testnet' ? 'http://localhost:5173/hiro' : 'http://localhost:5173/hiro-mainnet';
+    return name === 'testnet' ? new StacksTestnet({ url: proxyUrl }) : new StacksMainnet({ url: proxyUrl });
+  }
+  return NETWORKS[name].network;
+};
+export const getApiBaseUrl = (name: NetworkName): string => {
+  const isDev = typeof window !== 'undefined' && (import.meta as any).env?.DEV;
+  if (isDev) {
+    return name === 'testnet' ? '/hiro' : '/hiro-mainnet';
+  }
+  return NETWORKS[name].apiBaseUrl;
+};
 
 export const getExplorerAddressUrl = (name: NetworkName, address: string) =>
   `${NETWORKS[name].explorerBaseUrl}/address/${address}?chain=stacks`;
@@ -48,7 +62,7 @@ export interface StxBalance {
 
 export async function fetchStxBalance(address: string, network: NetworkName): Promise<StxBalance> {
   const url = `${getApiBaseUrl(network)}/extended/v1/address/${address}/balances`;
-  const res = await fetch(url);
+  const res = await fetchWithRetry(url, undefined, { maxRetries: 2, initialDelayMs: 2000 });
   if (!res.ok) throw new Error(`Failed to fetch balance (${res.status})`);
   const json: any = await res.json();
   const micro: string = json?.stx?.balance ?? '0';
