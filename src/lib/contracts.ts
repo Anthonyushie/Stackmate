@@ -264,12 +264,26 @@ export async function getLeaderboard({ puzzleId, network }: ReadLeaderboardParam
   const { address: contractAddress, name: contractName } = getContractIds(network);
   const base = getApiBaseUrl(network);
   const principal = contractAddress;
-  const url = `${base}/extended/v1/address/${principal}/transactions?limit=200`;
+  const url = `${base}/extended/v1/address/${principal}/transactions?limit=50`;
   try {
     const res = await fetch(url);
     if (!res.ok) return [];
     const data = await res.json();
-    const items = Array.isArray(data.results) ? data.results : [];
+    let items = Array.isArray(data.results) ? data.results : [];
+  const PAGE_LIMIT = 50;
+  let offset = items.length;
+  for (;;) {
+    if (items.length < PAGE_LIMIT) break;
+    const pageUrl = `${base}/extended/v1/address/${principal}/transactions?limit=${PAGE_LIMIT}&offset=${offset}`;
+    const res2 = await fetch(pageUrl);
+    if (!res2.ok) break;
+    const data2 = await res2.json();
+    const next = Array.isArray(data2.results) ? data2.results : [];
+    if (!next.length) break;
+    items = items.concat(next);
+    if (next.length < PAGE_LIMIT) break;
+    offset += next.length;
+  }
     const out: LeaderboardEntry[] = [];
     for (const tx of items) {
       if (tx?.tx_type !== 'contract_call') continue;
