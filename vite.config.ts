@@ -4,4 +4,20 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  server: {
+    proxy: {
+      '/hiro': {
+        target: 'https://api.testnet.hiro.so',
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/hiro/, ''),
+      },
+      '/hiro-mainnet': {
+        target: 'https://api.hiro.so',
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/hiro-mainnet/, ''),
+      },
+    },
+  },
 })

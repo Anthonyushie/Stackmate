@@ -25,7 +25,13 @@ export const NETWORKS: Record<NetworkName, NetworkConfig> = {
 };
 
 export const getNetwork = (name: NetworkName): StacksNetwork => NETWORKS[name].network;
-export const getApiBaseUrl = (name: NetworkName): string => NETWORKS[name].apiBaseUrl;
+export const getApiBaseUrl = (name: NetworkName): string => {
+  const isDev = typeof window !== 'undefined' && (import.meta as any).env?.DEV;
+  if (isDev) {
+    return name === 'testnet' ? '/hiro' : '/hiro-mainnet';
+  }
+  return NETWORKS[name].apiBaseUrl;
+};
 
 export const getExplorerAddressUrl = (name: NetworkName, address: string) =>
   `${NETWORKS[name].explorerBaseUrl}/address/${address}?chain=stacks`;
