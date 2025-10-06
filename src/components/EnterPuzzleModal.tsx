@@ -112,14 +112,22 @@ export default function EnterPuzzleModal({ isOpen, onClose, puzzleId, difficulty
   const diffColor = getDifficultyColor(difficulty);
 
   return createPortal(
-    <AnimatePresence>
+    <AnimatePresence mode="wait">
       {isOpen && (
         <motion.div
           className="fixed inset-0 flex items-center justify-center p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          style={{ zIndex: 9999 }}
+          style={{ 
+            zIndex: 999999,
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            pointerEvents: 'auto',
+          }}
         >
           <div 
             className="absolute inset-0 bg-black/70 backdrop-blur-sm" 
