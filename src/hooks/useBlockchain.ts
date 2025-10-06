@@ -110,7 +110,8 @@ export function useUserBalance(address?: string) {
       return fetchStxBalance(addr, network);
     },
     enabled: !!addr,
-    refetchInterval: 10000,
+    refetchInterval: 60000,
+    staleTime: 45000,
     refetchOnWindowFocus: false,
   });
 }
