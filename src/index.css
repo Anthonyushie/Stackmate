@@ -19,6 +19,7 @@
     background: #F5F5F0;
     color: #000000;
     overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -127,6 +128,25 @@
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: -0.02em;
+  }
+
+  .container-responsive {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  @media (min-width: 640px) {
+    .container-responsive {
+      padding-left: 24px;
+      padding-right: 24px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container-responsive {
+      padding-left: 32px;
+      padding-right: 32px;
+    }
   }
 }
 
