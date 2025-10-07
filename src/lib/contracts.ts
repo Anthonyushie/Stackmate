@@ -182,14 +182,24 @@ const requestContractCall = async (params: any): Promise<{ txId?: string; error?
     return null;
   }
 
-  const attempts: Array<[string, 'two-arg' | 'object']> = [
-    ['stx_callContract', 'two-arg'],
-    ['stx_callContract', 'object'],
-    ['stx_contractCall', 'object'],
-    ['stx_makeContractCall', 'object'],
-    ['contract_call', 'object'],
-    ['openContractCall', 'object'],
-  ];
+  const preferOpen = !!(globalThis as any)?.LeatherProvider;
+  const attempts: Array<[string, 'two-arg' | 'object']> = preferOpen
+    ? [
+        ['openContractCall', 'object'],
+        ['contract_call', 'object'],
+        ['stx_callContract', 'two-arg'],
+        ['stx_callContract', 'object'],
+        ['stx_contractCall', 'object'],
+        ['stx_makeContractCall', 'object'],
+      ]
+    : [
+        ['stx_callContract', 'two-arg'],
+        ['stx_callContract', 'object'],
+        ['stx_contractCall', 'object'],
+        ['stx_makeContractCall', 'object'],
+        ['contract_call', 'object'],
+        ['openContractCall', 'object'],
+      ];
 
   for (const [m, style] of attempts) {
     const r = await tryCall(m, style);
