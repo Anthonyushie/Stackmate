@@ -1,4 +1,4 @@
-import { fetchCallReadOnlyFunction, ClarityType, cvToJSON, hexToCV, standardPrincipalCV, uintCV, bufferCV, cvToHex, makeStandardSTXPostCondition, FungibleConditionCode, PostConditionMode } from '@stacks/transactions';
+import { fetchCallReadOnlyFunction, ClarityType, cvToJSON, hexToCV, standardPrincipalCV, uintCV, bufferCV, cvToHex, Pc, PostConditionMode } from '@stacks/transactions';
 import type { StacksNetwork } from '@stacks/network';
 import { getNetwork, getApiBaseUrl, type NetworkName } from './stacks';
 import { txManager } from '../hooks/useTransaction';
@@ -172,11 +172,7 @@ export async function enterPuzzle({ puzzleId, entryFee, sender, network, onStatu
   if (!senderAddress) return { ok: false, error: 'No sender address' };
   
   const entryAmount = BigInt(entryFee);
-  const pc = makeStandardSTXPostCondition(
-    senderAddress,
-    FungibleConditionCode.Equal,
-    entryAmount
-  );
+  const pc = Pc.principal(senderAddress).willSendEq(entryAmount).ustx();
   
   const args = [uintCV(typeof puzzleId === 'bigint' ? puzzleId : BigInt(puzzleId))];
   const req = {
