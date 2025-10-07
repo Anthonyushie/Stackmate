@@ -361,8 +361,8 @@ export default function SolvePuzzle() {
         <Header />
 
         {/* Main Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: window.innerWidth >= 1024 ? '2fr 1fr' : '1fr', gap: '24px' }}>
+        <div className="grid grid-cols-1 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6">
             {/* Board Section */}
             <div ref={boardWrapRef}>
               <motion.div

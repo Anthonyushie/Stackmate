@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { Trophy, Zap, Clock, Users, Coins, Crown, Target, Sparkles, Flame, Star, Network } from 'lucide-react';
 import WalletConnect from '../components/WalletConnect';
 import NotificationBell from '../components/NotificationBell';
+import MobileMenu from '../components/MobileMenu';
 import useWallet from '../hooks/useWallet';
 import { useActivePuzzles } from '../hooks/useBlockchain';
 import { getPuzzleInfo, getLeaderboard, type LeaderboardEntry, type PuzzleInfo } from '../lib/contracts';
@@ -258,8 +259,8 @@ export default function Home() {
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
         {/* Header */}
-        <header className="flex items-center justify-between mb-10 sm:mb-16">
-          <div className="flex items-center gap-3">
+        <header className="flex items-center justify-between mb-10 sm:mb-16 gap-4">
+          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
             <motion.div
               initial={{ rotate: -2, x: -20, opacity: 0 }}
               animate={{ rotate: 2, x: 0, opacity: 1 }}
@@ -268,10 +269,20 @@ export default function Home() {
                 background: colors.primary,
                 border: `6px solid ${colors.border}`,
                 boxShadow: shadows.brutal,
-                padding: '16px 32px',
+                padding: '12px 20px',
               }}
+              className="sm:px-8"
             >
-              <Link to="/" className="text-brutal" style={{ fontSize: '32px', color: colors.dark, textDecoration: 'none' }}>
+              <Link 
+                to="/" 
+                className="text-brutal" 
+                style={{ 
+                  fontSize: 'clamp(18px, 5vw, 32px)', 
+                  color: colors.dark, 
+                  textDecoration: 'none',
+                  whiteSpace: 'nowrap',
+                }}
+              >
                 STACKMATE
               </Link>
             </motion.div>
@@ -280,12 +291,12 @@ export default function Home() {
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: 'spring', stiffness: 300, delay: 0.2 }}
+              className="hidden sm:flex"
               style={{
                 background: colors.intermediate,
                 border: `4px solid ${colors.border}`,
                 boxShadow: shadows.brutalSmall,
                 padding: '8px 16px',
-                display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
               }}
@@ -302,15 +313,22 @@ export default function Home() {
             </motion.div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <Link to="/leaderboard">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Link to="/leaderboard" className="hidden lg:block">
               <NeoButton variant="secondary" size="sm">
                 <Trophy className="inline h-4 w-4 mr-2" />
-                Leaderboard
+                LEADERBOARD
               </NeoButton>
             </Link>
-            <NotificationBell />
-            <WalletConnect />
+            <div className="hidden md:block">
+              <NotificationBell />
+            </div>
+            <div className="hidden md:block">
+              <WalletConnect />
+            </div>
+            <div className="md:hidden">
+              <MobileMenu />
+            </div>
           </div>
         </header>
 
@@ -382,12 +400,12 @@ export default function Home() {
                 background: colors.primary,
                 border: `8px solid ${colors.border}`,
                 boxShadow: shadows.brutalLarge,
-                padding: '48px',
+                padding: '24px',
                 position: 'relative',
               }}
-              className="stripes-pattern"
+              className="stripes-pattern sm:p-12"
             >
-              <div className="grid grid-cols-3 gap-6 text-7xl sm:text-8xl">
+              <div className="grid grid-cols-3 gap-3 sm:gap-6 text-5xl sm:text-7xl md:text-8xl">
                 {['♜', '♞', '♝', '♛', '♚', '♟'].map((piece, i) => (
                   <motion.div
                     key={i}
@@ -409,7 +427,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, type: 'spring', stiffness: 200 }}
-            className="grid grid-cols-3 gap-4 mt-12"
+            className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-12"
           >
             <motion.div
               whileHover={{ y: -4 }}
@@ -421,10 +439,10 @@ export default function Home() {
                 transform: `rotate(${getRotation(0)}deg)`,
               }}
             >
-              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '14px', fontWeight: 700, marginBottom: '8px' }}>
+              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 'clamp(12px, 2.5vw, 14px)', fontWeight: 700, marginBottom: '8px' }}>
                 TOTAL PUZZLES
               </div>
-              <div className="text-brutal" style={{ fontSize: '48px', color: colors.dark }}>
+              <div className="text-brutal" style={{ fontSize: 'clamp(32px, 8vw, 48px)', color: colors.dark }}>
                 {stats.totalPuzzles}
               </div>
             </motion.div>
@@ -439,10 +457,10 @@ export default function Home() {
                 transform: `rotate(${getRotation(1)}deg)`,
               }}
             >
-              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '14px', fontWeight: 700, marginBottom: '8px' }}>
+              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 'clamp(12px, 2.5vw, 14px)', fontWeight: 700, marginBottom: '8px' }}>
                 TOTAL PLAYERS
               </div>
-              <div className="text-brutal" style={{ fontSize: '48px', color: colors.dark }}>
+              <div className="text-brutal" style={{ fontSize: 'clamp(32px, 8vw, 48px)', color: colors.dark }}>
                 {stats.totalPlayers}
               </div>
             </motion.div>
@@ -457,12 +475,12 @@ export default function Home() {
                 transform: `rotate(${getRotation(2)}deg)`,
               }}
             >
-              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '14px', fontWeight: 700, marginBottom: '8px', color: colors.white }}>
+              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 'clamp(12px, 2.5vw, 14px)', fontWeight: 700, marginBottom: '8px', color: colors.white }}>
                 TOTAL STAKED
               </div>
-              <div className="text-brutal" style={{ fontSize: '48px', color: colors.white }}>
+              <div className="text-brutal" style={{ fontSize: 'clamp(32px, 8vw, 48px)', color: colors.white }}>
                 {microToStx(stats.totalStaked)}
-                <span style={{ fontSize: '24px' }}> STX</span>
+                <span style={{ fontSize: 'clamp(16px, 4vw, 24px)' }}> STX</span>
               </div>
             </motion.div>
           </motion.div>
@@ -490,7 +508,7 @@ export default function Home() {
             </h2>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {(activeLoading || infoQueries.some(q => q.isLoading)) && (
               <>
                 <PuzzleCardSkeleton />
@@ -568,7 +586,7 @@ export default function Home() {
             </h2>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {(activeLoading || infoQueries.some(q => q.isLoading)) && (
               <>
                 <PuzzleCardSkeleton />
@@ -661,7 +679,7 @@ export default function Home() {
             </h2>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
               {
                 icon: <Zap className="h-12 w-12" />,
