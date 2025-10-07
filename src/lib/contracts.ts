@@ -216,28 +216,38 @@ export async function enterPuzzle({ puzzleId, entryFee, sender, network, onStatu
     onStatus?.('requesting_signature');
     
     console.log('[enterPuzzle] Using @stacks/connect openContractCall');
-    const result = await openContractCall({
-      contractAddress,
-      contractName,
-      functionName: 'enter-puzzle',
-      functionArgs: args,
-      postConditionMode: PCMode.Deny,
-      postConditions: [pc],
-      network: getNetwork(network),
-      onFinish: (data) => {
-        console.log('[enterPuzzle] Transaction finished:', data);
-      },
-      onCancel: () => {
-        console.log('[enterPuzzle] User canceled');
-      },
+    
+    // Wrap openContractCall in a Promise since it uses callbacks
+    const txId = await new Promise<string>((resolve, reject) => {
+      openContractCall({
+        contractAddress,
+        contractName,
+        functionName: 'enter-puzzle',
+        functionArgs: args,
+        postConditionMode: PCMode.Deny,
+        postConditions: [pc],
+        network: getNetwork(network),
+        onFinish: (data) => {
+          console.log('[enterPuzzle] Transaction finished:', data);
+          const tid = data?.txId || (data as any)?.transaction?.txid || data?.txid;
+          if (tid) {
+            resolve(tid);
+          } else {
+            reject(new Error('No transaction ID in callback'));
+          }
+        },
+        onCancel: () => {
+          console.log('[enterPuzzle] User canceled');
+          reject(new Error('User canceled'));
+        },
+      });
     });
     
-    // Extract txId from result
-    const txId = result?.txId || (result as any)?.transaction?.txid;
     if (!txId) {
       return { ok: false, error: 'No transaction ID returned' };
     }
     
+    console.log('[enterPuzzle] Got txId:', txId);
     txManager.submitted(txId, network, 'enter-puzzle');
     onStatus?.('submitted', { txId });
     const f = await pollTx(txId, network, onStatus);
