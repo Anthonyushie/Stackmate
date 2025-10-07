@@ -121,26 +121,40 @@ const requestContractCall = async (params: any): Promise<{ txId?: string; error?
     });
   };
 
-  const leatherParams = {
-    contract: `${params.contractAddress}.${params.contractName}`,
-    functionName: params.functionName,
-    functionArgs: params.functionArgs,
-    postConditionMode: normalizePostConditionMode(params.postConditionMode),
-    postConditions: normalizePostConditions(params.postConditions || []),
-    network: params.network,
-    anchorMode: params.anchorMode,
-  };
+  const buildParamsFor = (method: string) => {
+    const base = {
+      contract: `${params.contractAddress}.${params.contractName}`,
+      functionName: params.functionName,
+      functionArgs: params.functionArgs,
+      network: params.network,
+      anchorMode: params.anchorMode,
+    } as any;
 
-  console.log('[requestContractCall] Calling with params:', JSON.stringify(leatherParams, null, 2));
+    if (method === 'openContractCall' || method === 'contract_call') {
+      return {
+        ...base,
+        postConditionMode: normalizePostConditionMode(params.postConditionMode),
+        postConditions: params.postConditions || [], // pass typed objects for openContractCall
+      };
+    }
+
+    return {
+      ...base,
+      postConditionMode: normalizePostConditionMode(params.postConditionMode),
+      postConditions: normalizePostConditions(params.postConditions || []), // hex strings for stx_* methods
+    };
+  };
 
   async function tryCall(method: string, style: 'two-arg' | 'object'): Promise<{ txId?: string; error?: string } | null> {
     try {
       console.log(`[requestContractCall] Trying ${method} (${style})...`);
+      const callParams = buildParamsFor(method);
+      console.log(`[requestContractCall] Calling ${method} with params:`, JSON.stringify(callParams, null, 2));
       let res: any;
       if (style === 'two-arg') {
-        res = await provider.request(method, leatherParams);
+        res = await provider.request(method, callParams);
       } else {
-        res = await provider.request({ method, params: leatherParams });
+        res = await provider.request({ method, params: callParams });
       }
       console.log(`[requestContractCall] ${method} (${style}) response:`, res);
       
