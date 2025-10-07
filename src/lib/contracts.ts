@@ -123,13 +123,25 @@ const requestContractCall = async (params: any): Promise<{ txId?: string; error?
         res = await provider.request({ method, params: leatherParams });
       }
       console.log(`[requestContractCall] ${method} (${style}) response:`, res);
+      
+      // Check for JSON-RPC error format
+      if (res?.error) {
+        console.error(`[requestContractCall] ${method} (${style}) JSON-RPC error:`, res.error);
+        const errorMsg = res.error?.message || res.error?.data || JSON.stringify(res.error);
+        if (errorMsg?.toLowerCase?.().includes('user') && errorMsg?.toLowerCase?.().includes('cancel')) {
+          return { error: 'User canceled' };
+        }
+        // Don't return error yet, let it continue to try other methods
+        return null;
+      }
+      
       const txId = res?.txId || res?.txid || res?.tx_id || res?.result?.txid || res?.result?.txId || (typeof res === 'string' ? res : null);
       if (txId && String(txId).length > 10) {
         console.log(`[requestContractCall] SUCCESS with ${method} (${style}), txId:`, txId);
         return { txId };
       }
     } catch (e: any) {
-      console.warn(`[requestContractCall] ${method} (${style}) error:`, e?.message || e);
+      console.warn(`[requestContractCall] ${method} (${style}) caught exception:`, e);
       const msg = e?.message || e?.error?.message || '';
       if (msg?.toLowerCase?.().includes('user') && msg?.toLowerCase?.().includes('cancel')) return { error: 'User canceled' };
     }
