@@ -9,6 +9,7 @@ const brutal = 'rounded-none border-[3px] border-black shadow-[6px_6px_0_#000]';
 export default function TransactionStatus() {
   const { items } = useTransaction();
   const dismiss = useTxStore((s) => s.remove);
+  const { network } = useWallet();
   const current = useMemo(() => {
     // Prefer active; otherwise show most recent non-idle
     const active = items.find((x) => x.status === 'pending' || x.status === 'confirming');
@@ -24,8 +25,6 @@ export default function TransactionStatus() {
   }, [autoDismiss, current]);
 
   if (!current) return null;
-
-  const { network } = useWallet();
   const url = current.url || explorerTxUrl(network, current.txId);
 
   const statusText =
