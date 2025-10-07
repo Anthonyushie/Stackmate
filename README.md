@@ -2,8 +2,7 @@
 
 A bold, neo‑brutalist, on‑chain chess puzzle arena where players stake STX, race to solve curated puzzles, and the fastest correct solver wins the prize pool. Built end‑to‑end on Stacks with a production‑grade UI, transparent on‑chain logic, and a vibe that refuses to be ignored.
 
-This submission is crafted for the DoraHacks Stacks Vibe Coding Hackathon — it’s 100% Vibecoded: loud design, delightful interactions, and serious tech under the hood.
-
+This submission is crafted for the DoraHacks Stacks Vibe Coding Hackathon — it's 100% Vibecoded: loud design, delightful interactions, and serious tech under the hood.
 
 ## TL;DR
 - Stake STX to enter a puzzle matching your difficulty.
@@ -12,9 +11,8 @@ This submission is crafted for the DoraHacks Stacks Vibe Coding Hackathon — it
 - Fully on‑chain puzzle lifecycle: create → enter → submit solution → set winner → claim prize → stats.
 - Neo‑brutal UI: thick borders, hard shadows, BIG type, rotation, confetti, and segmented LED timers.
 
-
 ## Why Stackmate Wins This Hackathon
-1. Pure vibe: 100% VIBECODED. We didn’t just ship features — we shipped a feeling. The UI is memorable, emotive, and proudly neo‑brutalist.
+1. Pure vibe: 100% VIBECODED. We didn't just ship features — we shipped a feeling. The UI is memorable, emotive, and proudly neo‑brutalist.
 2. End‑to‑end product: Smart contract + wallet flows + live leaderboard + polished UX + docs. Not a demo — a complete experience.
 3. Real Stacks integration: Leather/Xverse/Hiro wallet support, robust contract reads/writes, indexer‑backed insights.
 4. On‑chain transparency: Prize pools, deadlines, entries, correctness, winner and claims are all verifiable on‑chain.
@@ -23,17 +21,15 @@ This submission is crafted for the DoraHacks Stacks Vibe Coding Hackathon — it
 7. Technical quality: Strong TS types, React Query, framer‑motion micro‑interactions, clean contract boundaries.
 8. Fair economics: Simple, predictable 5% platform fee; everything else goes to players. Clear incentives for tournament operators.
 9. Extensible: New game modes, tournament formats, NFT sponsorships, or oracles can be added without rewriting the core.
-10. It’s fun. People will actually want to play this — and the vibe sells itself.
-
+10. It's fun. People will actually want to play this — and the vibe sells itself.
 
 ## Demo Overview
 - Home: Browse active puzzles, difficulty tiers, prize pools, entries, countdown.
 - Puzzle: Standalone viewer with info card and solver integration.
 - Solve: Core experience — high‑contrast board, LED timer, hint/reset, live leaderboard, confetti.
-- Leaderboard: All‑time champions + today’s best times + hall of fame.
+- Leaderboard: All‑time champions + today's best times + hall of fame.
 - Profile: Stats grid, achievements, win‑rate chart, sortable history with pagination.
 - My Wins: Claim prizes with a celebration modal.
-
 
 ## Architecture
 
@@ -69,6 +65,20 @@ styles/                     Neo‑brutal theme configuration
 scripts/                    Data, verification and analysis helpers
 ```
 
+## Components Diagram
+
+![Stackmate Components Diagram](./images/stackmate-components-diagram.svg)
+
+## Routes
+
+The application uses React Router for navigation. Here are all the defined routes:
+
+- **/** - Home page (puzzle selection and entry)
+- **/puzzle/:id** - Individual puzzle details page
+- **/solve/:difficulty/:puzzleId** - Puzzle solving interface
+- **/wins** - My Wins page (claim prizes)
+- **/profile** - User profile and stats
+- **/leaderboard** - Global leaderboard
 
 ## Smart Contract (Clarity) — puzzle‑pool.clar
 
@@ -101,8 +111,7 @@ A minimal, auditable contract powering on‑chain puzzle tournaments.
 
 ### Fairness & Transparency
 - The canonical truth lives on‑chain: entry counts, deadlines, prize pool, correctness, final winner, and claims.
-- The UI’s live leaderboard is built from on‑chain `submit-solution` calls. Because `set-winner` requires a correct entry, adjudication is transparent and verifiable. (The MVP uses an admin‑set winner gated by correctness; future versions can move to fully trustless winner selection or commit‑reveal time proofs.)
-
+- The UI's live leaderboard is built from on‑chain `submit-solution` calls. Because `set-winner` requires a correct entry, adjudication is transparent and verifiable. (The MVP uses an admin‑set winner gated by correctness; future versions can move to fully trustless winner selection or commit‑reveal time proofs.)
 
 ## UX & Design — 100% VIBECODED
 - Neo‑brutal visuals: thick 4–8px black borders, hard 8px shadows, clashing electric colors.
@@ -110,7 +119,6 @@ A minimal, auditable contract powering on‑chain puzzle tournaments.
 - Segmented LED timers with glow; ranking circles; medal icons; pulsing badges; confetti showers.
 - Intentional rotation (1–3°), hover lift, and spring physics across the app.
 - Accessibility: high contrast, readable type scale, all interactions keyboard‑reachable.
-
 
 ## Local Setup
 
@@ -141,7 +149,6 @@ Visit http://localhost:5173 and connect your wallet.
 ### 4) Switch Networks
 Use the wallet dropdown to toggle Testnet/Mainnet. The app selects the corresponding contract ID automatically.
 
-
 ## How to Operate a Tournament
 
 1) Set Stake Amounts (owner)
@@ -159,7 +166,7 @@ Use the wallet dropdown to toggle Testnet/Mainnet. The app selects the correspon
 ```
 
 3) Players Enter
-- Users call `enter-puzzle` and stake the difficulty’s amount; prize pool grows automatically.
+- Users call `enter-puzzle` and stake the difficulty's amount; prize pool grows automatically.
 
 4) Submit Solutions
 - Users call `submit-solution(puzzle-id, solution, solve-time)`.
@@ -176,7 +183,6 @@ Use the wallet dropdown to toggle Testnet/Mainnet. The app selects the correspon
 7) Emergency Refund
 - If no correct solvers, owner can refund all participants with `emergency-refund`.
 
-
 ## Product Features (Highlights)
 - Difficulty tiers (Beginner / Intermediate / Expert) with independent stake amounts.
 - Live Leaderboard with medal icons and YOU highlighting.
@@ -185,12 +191,10 @@ Use the wallet dropdown to toggle Testnet/Mainnet. The app selects the correspon
 - Share actions for wins and solves.
 - Notifications panel with desktop support.
 
-
 ## API & Indexer Notes
 - Read‑only: `/v2/contracts/call-read` for puzzle and user stats.
 - Chain info: `/v2/info` for block height (countdowns, deadlines).
 - Leaderboard indexing: contract call history for `submit-solution` via Hiro API.
-
 
 ## Security Considerations (MVP → Production)
 - MVP adjudication: `set-winner` is owner‑gated but correctness‑guarded. All data is public and verifiable.
@@ -198,7 +202,6 @@ Use the wallet dropdown to toggle Testnet/Mainnet. The app selects the correspon
   - Trustless winner selection (e.g., on‑chain min reduction over bounded set or a provable reduction off‑chain with merkle proofs).
   - Commit‑reveal + time proofs; per‑move hashing; or zk‑assisted verification.
   - Rate limiting and DoS protection on read‑paths.
-
 
 ## Roadmap
 - Full trustless winner selection.
@@ -208,12 +211,10 @@ Use the wallet dropdown to toggle Testnet/Mainnet. The app selects the correspon
 - On‑chain governance for fee splits and curation.
 - Mobile‑first progressive web app (PWA) with offline modes for practice.
 
-
 ## Development Scripts
 - `scripts/build-puzzles.mjs` — curate/generate puzzle sets.
 - `scripts/verify-puzzles.mjs` — sanity checks on puzzle data.
 - `scripts/analyze.mjs` — contract/puzzle analytics helpers.
-
 
 ## Contributing
 PRs welcome. Please:
@@ -221,18 +222,14 @@ PRs welcome. Please:
 - Maintain type safety and consistent React Query patterns.
 - Do not log secrets or wallet data.
 
-
 ## License
 MIT — see LICENSE if present. If absent, assume all rights reserved for hackathon evaluation purposes.
-
 
 ## Credits
 - Chess logic powered by `chess.js` and `react-chessboard`.
 - Built with ❤️ for Stacks by vibecoders.
 
-
 ---
-
 # Appendix: Judging Criteria Mapping
 
 - Innovation & Originality — A familiar game, radically reimagined for Web3 with a distinctive, 100% vibecoded brand.
