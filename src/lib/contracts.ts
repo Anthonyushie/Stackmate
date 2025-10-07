@@ -1,4 +1,4 @@
-import { fetchCallReadOnlyFunction, ClarityType, cvToJSON, hexToCV, standardPrincipalCV, uintCV, bufferCV, cvToHex } from '@stacks/transactions';
+import { fetchCallReadOnlyFunction, ClarityType, cvToJSON, hexToCV, standardPrincipalCV, uintCV, bufferCV, cvToHex, makeStandardSTXPostCondition, FungibleConditionCode, PostConditionMode } from '@stacks/transactions';
 import type { StacksNetwork } from '@stacks/network';
 import { getNetwork, getApiBaseUrl, type NetworkName } from './stacks';
 import { txManager } from '../hooks/useTransaction';
@@ -170,15 +170,22 @@ export async function enterPuzzle({ puzzleId, entryFee, sender, network, onStatu
   const { address: contractAddress, name: contractName } = getContractIds(network);
   const senderAddress = await pickSender(network, sender);
   if (!senderAddress) return { ok: false, error: 'No sender address' };
-  const pc = [{ type: 'stx', principal: senderAddress, conditionCode: 'eq', amount: BigInt(entryFee).toString() }];
+  
+  const entryAmount = BigInt(entryFee);
+  const pc = makeStandardSTXPostCondition(
+    senderAddress,
+    FungibleConditionCode.Equal,
+    entryAmount
+  );
+  
   const args = [uintCV(typeof puzzleId === 'bigint' ? puzzleId : BigInt(puzzleId))];
   const req = {
     contractAddress,
     contractName,
     functionName: 'enter-puzzle',
     functionArgs: args.map(toHexArg),
-    postConditionMode: 'deny',
-    postConditions: pc,
+    postConditionMode: PostConditionMode.Deny,
+    postConditions: [pc],
     network: network,
     anchorMode: 'any',
   };
