@@ -1,4 +1,4 @@
-import { fetchCallReadOnlyFunction, ClarityType, cvToJSON, hexToCV, standardPrincipalCV, uintCV, bufferCV, cvToHex, Pc, PostConditionMode } from '@stacks/transactions';
+import { fetchCallReadOnlyFunction, ClarityType, cvToJSON, hexToCV, standardPrincipalCV, uintCV, bufferCV, cvToHex, Pc, postConditionToHex } from '@stacks/transactions';
 import type { StacksNetwork } from '@stacks/network';
 import { getNetwork, getApiBaseUrl, type NetworkName } from './stacks';
 import { txManager } from '../hooks/useTransaction';
@@ -101,12 +101,32 @@ const requestContractCall = async (params: any): Promise<{ txId?: string; error?
   console.log('[requestContractCall] Provider found:', provider ? 'YES' : 'NO', provider?.constructor?.name);
   if (!provider?.request) return { error: 'No wallet provider available' };
 
+  // Normalize arguments for wallet RPCs
+  const normalizePostConditionMode = (mode: any): 'allow' | 'deny' => {
+    if (typeof mode === 'string') return mode.toLowerCase() === 'allow' ? 'allow' : 'deny';
+    // 1 = allow, 2 = deny in legacy enums
+    return mode === 1 ? 'allow' : 'deny';
+  };
+  const normalizePostConditions = (pcs: any[]): string[] => {
+    if (!Array.isArray(pcs)) return [];
+    return pcs.map((pc: any) => {
+      if (typeof pc === 'string') return pc.startsWith('0x') ? pc : `0x${pc}`;
+      try {
+        const hex = postConditionToHex(pc);
+        return hex.startsWith('0x') ? hex : `0x${hex}`;
+      } catch {
+        // Fall back to JSON string for debugging if conversion fails
+        return JSON.stringify(pc);
+      }
+    });
+  };
+
   const leatherParams = {
     contract: `${params.contractAddress}.${params.contractName}`,
     functionName: params.functionName,
     functionArgs: params.functionArgs,
-    postConditionMode: params.postConditionMode,
-    postConditions: params.postConditions,
+    postConditionMode: normalizePostConditionMode(params.postConditionMode),
+    postConditions: normalizePostConditions(params.postConditions || []),
     network: params.network,
     anchorMode: params.anchorMode,
   };
@@ -180,7 +200,7 @@ export async function enterPuzzle({ puzzleId, entryFee, sender, network, onStatu
     contractName,
     functionName: 'enter-puzzle',
     functionArgs: args.map(toHexArg),
-    postConditionMode: PostConditionMode.Deny,
+    postConditionMode: 'deny',
     postConditions: [pc],
     network: network,
     anchorMode: 'any',
