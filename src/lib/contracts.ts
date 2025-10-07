@@ -43,7 +43,8 @@ const getContractIds = (network: NetworkName): ContractIds => {
 
 const getProvider = (): any | null => {
   const w: any = globalThis as any;
-  return w?.StacksProvider || w?.HiroWalletProvider || w?.LeatherProvider || w?.XverseProviders?.BitcoinProvider || null;
+  // Prefer LeatherProvider (newer API), then fall back
+  return w?.LeatherProvider || w?.StacksProvider || w?.HiroWalletProvider || w?.XverseProviders?.BitcoinProvider || null;
 };
 
 const toHexArg = (cv: any) => cvToHex(cv);
@@ -98,16 +99,48 @@ const pollTx = async (txId: string, network: NetworkName, onStatus?: OnStatus): 
 const requestContractCall = async (params: any): Promise<{ txId?: string; error?: string }> => {
   const provider = getProvider();
   if (!provider?.request) return { error: 'No wallet provider available' };
-  const methods = ['stx_makeContractCall', 'stx_contractCall', 'contract_call', 'openContractCall'];
-  for (const m of methods) {
+
+  const leatherParams = {
+    contract: `${params.contractAddress}.${params.contractName}`,
+    functionName: params.functionName,
+    functionArgs: params.functionArgs,
+    postConditionMode: params.postConditionMode,
+    postConditions: params.postConditions,
+    network: params.network,
+    anchorMode: params.anchorMode,
+  };
+
+  async function tryCall(method: string, style: 'two-arg' | 'object'): Promise<{ txId?: string; error?: string } | null> {
     try {
-      const res = await provider.request({ method: m, params });
-      if (res?.txId || res?.txid || res?.tx_id) return { txId: res.txId || res.txid || res.tx_id };
-      if (typeof res === 'string' && res.length > 10) return { txId: res };
+      let res: any;
+      if (style === 'two-arg') {
+        res = await provider.request(method, leatherParams);
+      } else {
+        res = await provider.request({ method, params: leatherParams });
+      }
+      const txId = res?.txId || res?.txid || res?.tx_id || res?.result?.txid || res?.result?.txId || (typeof res === 'string' ? res : null);
+      if (txId && String(txId).length > 10) return { txId };
     } catch (e: any) {
-      if (e?.message?.includes('User canceled')) return { error: 'User canceled' };
+      const msg = e?.message || e?.error?.message || '';
+      if (msg?.toLowerCase?.().includes('user') && msg?.toLowerCase?.().includes('cancel')) return { error: 'User canceled' };
     }
+    return null;
   }
+
+  const attempts: Array<[string, 'two-arg' | 'object']> = [
+    ['stx_callContract', 'two-arg'],
+    ['stx_callContract', 'object'],
+    ['stx_contractCall', 'object'],
+    ['stx_makeContractCall', 'object'],
+    ['contract_call', 'object'],
+    ['openContractCall', 'object'],
+  ];
+
+  for (const [m, style] of attempts) {
+    const r = await tryCall(m, style);
+    if (r) return r;
+  }
+
   return { error: 'Wallet request failed' };
 };
 
