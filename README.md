@@ -1,5 +1,7 @@
 # STACKMATE — 100% VIBECODED Chess Puzzle Pools on Stacks
 
+![Stackmate Hero](./images/stackmate-hero.png)
+
 A bold, neo‑brutalist, on‑chain chess puzzle arena where players stake STX, race to solve curated puzzles, and the fastest correct solver wins the prize pool. Built end‑to‑end on Stacks with a production‑grade UI, transparent on‑chain logic, and a vibe that refuses to be ignored.
 
 This submission is crafted for the DoraHacks Stacks Vibe Coding Hackathon — it's 100% Vibecoded: loud design, delightful interactions, and serious tech under the hood.
