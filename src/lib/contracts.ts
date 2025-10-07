@@ -98,6 +98,7 @@ const pollTx = async (txId: string, network: NetworkName, onStatus?: OnStatus): 
 
 const requestContractCall = async (params: any): Promise<{ txId?: string; error?: string }> => {
   const provider = getProvider();
+  console.log('[requestContractCall] Provider found:', provider ? 'YES' : 'NO', provider?.constructor?.name);
   if (!provider?.request) return { error: 'No wallet provider available' };
 
   const leatherParams = {
@@ -110,17 +111,25 @@ const requestContractCall = async (params: any): Promise<{ txId?: string; error?
     anchorMode: params.anchorMode,
   };
 
+  console.log('[requestContractCall] Calling with params:', JSON.stringify(leatherParams, null, 2));
+
   async function tryCall(method: string, style: 'two-arg' | 'object'): Promise<{ txId?: string; error?: string } | null> {
     try {
+      console.log(`[requestContractCall] Trying ${method} (${style})...`);
       let res: any;
       if (style === 'two-arg') {
         res = await provider.request(method, leatherParams);
       } else {
         res = await provider.request({ method, params: leatherParams });
       }
+      console.log(`[requestContractCall] ${method} (${style}) response:`, res);
       const txId = res?.txId || res?.txid || res?.tx_id || res?.result?.txid || res?.result?.txId || (typeof res === 'string' ? res : null);
-      if (txId && String(txId).length > 10) return { txId };
+      if (txId && String(txId).length > 10) {
+        console.log(`[requestContractCall] SUCCESS with ${method} (${style}), txId:`, txId);
+        return { txId };
+      }
     } catch (e: any) {
+      console.warn(`[requestContractCall] ${method} (${style}) error:`, e?.message || e);
       const msg = e?.message || e?.error?.message || '';
       if (msg?.toLowerCase?.().includes('user') && msg?.toLowerCase?.().includes('cancel')) return { error: 'User canceled' };
     }
@@ -141,6 +150,7 @@ const requestContractCall = async (params: any): Promise<{ txId?: string; error?
     if (r) return r;
   }
 
+  console.error('[requestContractCall] All methods failed. No wallet response.');
   return { error: 'Wallet request failed' };
 };
 
