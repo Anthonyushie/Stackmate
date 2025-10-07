@@ -1,5 +1,6 @@
-import { fetchCallReadOnlyFunction, ClarityType, cvToJSON, hexToCV, standardPrincipalCV, uintCV, bufferCV, cvToHex, Pc, postConditionToHex } from '@stacks/transactions';
+import { fetchCallReadOnlyFunction, ClarityType, cvToJSON, hexToCV, standardPrincipalCV, uintCV, bufferCV, cvToHex, Pc, postConditionToHex, PostConditionMode as PCMode } from '@stacks/transactions';
 import type { StacksNetwork } from '@stacks/network';
+import { openContractCall } from '@stacks/connect';
 import { getNetwork, getApiBaseUrl, type NetworkName } from './stacks';
 import { txManager } from '../hooks/useTransaction';
 
@@ -209,27 +210,42 @@ export async function enterPuzzle({ puzzleId, entryFee, sender, network, onStatu
   const pc = Pc.principal(senderAddress).willSendEq(entryAmount).ustx();
   
   const args = [uintCV(typeof puzzleId === 'bigint' ? puzzleId : BigInt(puzzleId))];
-  const req = {
-    contractAddress,
-    contractName,
-    functionName: 'enter-puzzle',
-    functionArgs: args.map(toHexArg),
-    postConditionMode: 'deny',
-    postConditions: [pc],
-    network: network,
-    anchorMode: 'any',
-  };
+  
   try {
     txManager.open('enter-puzzle', network);
     onStatus?.('requesting_signature');
-    const r = await requestContractCall(req);
-    if (r.error) return { ok: false, error: r.error };
-    const txId = r.txId!;
+    
+    console.log('[enterPuzzle] Using @stacks/connect openContractCall');
+    const result = await openContractCall({
+      contractAddress,
+      contractName,
+      functionName: 'enter-puzzle',
+      functionArgs: args,
+      postConditionMode: PCMode.Deny,
+      postConditions: [pc],
+      network: getNetwork(network),
+      onFinish: (data) => {
+        console.log('[enterPuzzle] Transaction finished:', data);
+      },
+      onCancel: () => {
+        console.log('[enterPuzzle] User canceled');
+      },
+    });
+    
+    // Extract txId from result
+    const txId = result?.txId || (result as any)?.transaction?.txid;
+    if (!txId) {
+      return { ok: false, error: 'No transaction ID returned' };
+    }
+    
     txManager.submitted(txId, network, 'enter-puzzle');
     onStatus?.('submitted', { txId });
     const f = await pollTx(txId, network, onStatus);
     return { ok: f === 'success', txId };
   } catch (e: any) {
+    if (e?.message?.includes('cancel')) {
+      return { ok: false, error: 'User canceled' };
+    }
     return { ok: false, error: e?.message || 'enterPuzzle failed' };
   }
 }
