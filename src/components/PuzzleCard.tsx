@@ -272,7 +272,7 @@ export default function PuzzleCard({
         <div style={{
           fontFamily: "'Space Grotesk', sans-serif",
           fontWeight: 900,
-          fontSize: '56px',
+          fontSize: 'clamp(40px, 8vw, 56px)',
           color: colors.white,
           lineHeight: 1,
           textShadow: `4px 4px 0px ${colors.primary}`,
@@ -282,7 +282,7 @@ export default function PuzzleCard({
         <div style={{
           fontFamily: "'Space Grotesk', sans-serif",
           fontWeight: 900,
-          fontSize: '32px',
+          fontSize: 'clamp(24px, 5vw, 32px)',
           color: colors.primary,
           marginTop: '4px',
         }}>
@@ -405,7 +405,7 @@ export default function PuzzleCard({
           gap: '12px',
           fontFamily: "'Space Grotesk', sans-serif",
           fontWeight: 900,
-          fontSize: '24px',
+          fontSize: 'clamp(18px, 4vw, 24px)',
           textTransform: 'uppercase',
           color: colors.white,
           letterSpacing: '-0.02em',

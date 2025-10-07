@@ -76,14 +76,14 @@ export default function WalletConnect({ className = '' }: { className?: string }
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
-          padding: '12px 20px',
+          padding: 'clamp(10px, 2vw, 12px) clamp(12px, 3vw, 20px)',
           background: isConnected ? colors.accent2 : colors.primary,
           border: `5px solid ${colors.border}`,
           boxShadow: shadows.brutal,
           cursor: isConnecting ? 'not-allowed' : 'pointer',
           fontFamily: "'Inter', sans-serif",
           fontWeight: 900,
-          fontSize: '14px',
+          fontSize: 'clamp(11px, 2.5vw, 14px)',
           textTransform: 'uppercase',
           color: colors.dark,
           opacity: isConnecting ? 0.7 : 1,
@@ -114,9 +114,10 @@ export default function WalletConnect({ className = '' }: { className?: string }
             <Loader2 className="h-5 w-5" />
           </motion.div>
         ) : (
-          <Wallet className="h-5 w-5" />
+          <Wallet className="h-4 w-4 sm:h-5 sm:w-5" />
         )}
-        <span>{label}</span>
+        <span className="hidden sm:inline">{label}</span>
+        <span className="sm:hidden">{isConnected ? truncateMiddle(address, 4, 3) : 'CONNECT'}</span>
         <motion.div
           animate={{ rotate: open || showProviders ? 180 : 0 }}
           transition={{ type: 'spring', stiffness: 300 }}
@@ -136,8 +137,10 @@ export default function WalletConnect({ className = '' }: { className?: string }
             style={{
               position: 'absolute',
               left: 0,
+              right: 0,
               marginTop: '12px',
-              width: '280px',
+              width: '100%',
+              maxWidth: '280px',
               zIndex: 50,
             }}
           >
@@ -191,7 +194,8 @@ export default function WalletConnect({ className = '' }: { className?: string }
               position: 'absolute',
               right: 0,
               marginTop: '12px',
-              minWidth: '280px',
+              width: '100vw',
+              maxWidth: '320px',
               zIndex: 50,
             }}
           >

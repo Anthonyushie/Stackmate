@@ -3,8 +3,7 @@ import { useQueries, useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Trophy, Zap, Clock, Users, Coins, Crown, Target, Sparkles, Flame, Star, Network } from 'lucide-react';
-import WalletConnect from '../components/WalletConnect';
-import NotificationBell from '../components/NotificationBell';
+import Header from '../components/Header';
 import useWallet from '../hooks/useWallet';
 import { useActivePuzzles } from '../hooks/useBlockchain';
 import { getPuzzleInfo, getLeaderboard, type LeaderboardEntry, type PuzzleInfo } from '../lib/contracts';
@@ -257,62 +256,7 @@ export default function Home() {
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
-        {/* Header */}
-        <header className="flex items-center justify-between mb-10 sm:mb-16">
-          <div className="flex items-center gap-3">
-            <motion.div
-              initial={{ rotate: -2, x: -20, opacity: 0 }}
-              animate={{ rotate: 2, x: 0, opacity: 1 }}
-              transition={{ type: 'spring', stiffness: 300 }}
-              style={{
-                background: colors.primary,
-                border: `6px solid ${colors.border}`,
-                boxShadow: shadows.brutal,
-                padding: '16px 32px',
-              }}
-            >
-              <Link to="/" className="text-brutal" style={{ fontSize: '32px', color: colors.dark, textDecoration: 'none' }}>
-                STACKMATE
-              </Link>
-            </motion.div>
-            
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: 'spring', stiffness: 300, delay: 0.2 }}
-              style={{
-                background: colors.intermediate,
-                border: `4px solid ${colors.border}`,
-                boxShadow: shadows.brutalSmall,
-                padding: '8px 16px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-            >
-              <Network className="h-4 w-4" />
-              <span style={{ 
-                fontFamily: "'Space Grotesk', sans-serif",
-                fontWeight: 900, 
-                fontSize: '14px', 
-                textTransform: 'uppercase' 
-              }}>
-                TESTNET
-              </span>
-            </motion.div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Link to="/leaderboard">
-              <NeoButton variant="secondary" size="sm">
-                <Trophy className="inline h-4 w-4 mr-2" />
-                Leaderboard
-              </NeoButton>
-            </Link>
-            <NotificationBell />
-            <WalletConnect />
-          </div>
-        </header>
+        <Header />
 
         {/* Hero Section */}
         <section className="mb-16 sm:mb-24">
@@ -409,7 +353,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, type: 'spring', stiffness: 200 }}
-            className="grid grid-cols-3 gap-4 mt-12"
+            className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-12"
           >
             <motion.div
               whileHover={{ y: -4 }}
@@ -421,10 +365,10 @@ export default function Home() {
                 transform: `rotate(${getRotation(0)}deg)`,
               }}
             >
-              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '14px', fontWeight: 700, marginBottom: '8px' }}>
+              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 'clamp(12px, 3vw, 14px)', fontWeight: 700, marginBottom: '8px' }}>
                 TOTAL PUZZLES
               </div>
-              <div className="text-brutal" style={{ fontSize: '48px', color: colors.dark }}>
+              <div className="text-brutal" style={{ fontSize: 'clamp(32px, 8vw, 48px)', color: colors.dark }}>
                 {stats.totalPuzzles}
               </div>
             </motion.div>
@@ -439,10 +383,10 @@ export default function Home() {
                 transform: `rotate(${getRotation(1)}deg)`,
               }}
             >
-              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '14px', fontWeight: 700, marginBottom: '8px' }}>
+              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 'clamp(12px, 3vw, 14px)', fontWeight: 700, marginBottom: '8px' }}>
                 TOTAL PLAYERS
               </div>
-              <div className="text-brutal" style={{ fontSize: '48px', color: colors.dark }}>
+              <div className="text-brutal" style={{ fontSize: 'clamp(32px, 8vw, 48px)', color: colors.dark }}>
                 {stats.totalPlayers}
               </div>
             </motion.div>
@@ -457,12 +401,12 @@ export default function Home() {
                 transform: `rotate(${getRotation(2)}deg)`,
               }}
             >
-              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '14px', fontWeight: 700, marginBottom: '8px', color: colors.white }}>
+              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 'clamp(12px, 3vw, 14px)', fontWeight: 700, marginBottom: '8px', color: colors.white }}>
                 TOTAL STAKED
               </div>
-              <div className="text-brutal" style={{ fontSize: '48px', color: colors.white }}>
+              <div className="text-brutal" style={{ fontSize: 'clamp(32px, 8vw, 48px)', color: colors.white }}>
                 {microToStx(stats.totalStaked)}
-                <span style={{ fontSize: '24px' }}> STX</span>
+                <span style={{ fontSize: 'clamp(20px, 4vw, 24px)' }}> STX</span>
               </div>
             </motion.div>
           </motion.div>
@@ -484,13 +428,13 @@ export default function Home() {
               transform: 'rotate(-1deg)',
             }}
           >
-            <h2 className="text-brutal" style={{ fontSize: '40px', color: colors.primary }}>
-              <Sparkles className="inline h-8 w-8 mr-3" />
+            <h2 className="text-brutal" style={{ fontSize: 'clamp(24px, 6vw, 40px)', color: colors.primary }}>
+              <Sparkles className="inline h-6 w-6 sm:h-8 sm:w-8 mr-2 sm:mr-3" />
               CHOOSE YOUR CHALLENGE
             </h2>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {(activeLoading || infoQueries.some(q => q.isLoading)) && (
               <>
                 <PuzzleCardSkeleton />
@@ -563,12 +507,12 @@ export default function Home() {
               transform: 'rotate(1deg)',
             }}
           >
-            <h2 className="text-brutal" style={{ fontSize: '36px', color: colors.accent1 }}>
+            <h2 className="text-brutal" style={{ fontSize: 'clamp(24px, 5vw, 36px)', color: colors.accent1 }}>
               ALL ACTIVE PUZZLES
             </h2>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {(activeLoading || infoQueries.some(q => q.isLoading)) && (
               <>
                 <PuzzleCardSkeleton />
@@ -655,13 +599,13 @@ export default function Home() {
               transform: 'rotate(1deg)',
             }}
           >
-            <h2 className="text-brutal" style={{ fontSize: '40px', color: colors.white }}>
-              <Target className="inline h-8 w-8 mr-3" />
+            <h2 className="text-brutal" style={{ fontSize: 'clamp(24px, 6vw, 40px)', color: colors.white }}>
+              <Target className="inline h-6 w-6 sm:h-8 sm:w-8 mr-2 sm:mr-3" />
               HOW IT WORKS
             </h2>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {[
               {
                 icon: <Zap className="h-12 w-12" />,

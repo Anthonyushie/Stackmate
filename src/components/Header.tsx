@@ -1,14 +1,19 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Trophy, Network } from 'lucide-react';
+import { useState } from 'react';
 import WalletConnect from './WalletConnect';
 import NotificationBell from './NotificationBell';
+import MobileMenu, { MobileMenuButton } from './MobileMenu';
 import { colors, shadows } from '../styles/neo-brutal-theme';
 import NeoButton from './neo/NeoButton';
 
 export default function Header() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
-    <header className="flex items-center justify-between mb-10 sm:mb-16 flex-wrap gap-4">
+    <>
+    <header className="flex items-center justify-between mb-10 sm:mb-16 gap-4">
       <div className="flex items-center gap-3">
         <motion.div
           initial={{ rotate: -2, x: -20, opacity: 0 }}
@@ -65,15 +70,30 @@ export default function Header() {
       </div>
 
       <div className="flex items-center gap-3">
-        <Link to="/leaderboard">
-          <NeoButton variant="secondary" size="sm">
-            <Trophy className="inline h-4 w-4 mr-2" />
-            LEADERBOARD
-          </NeoButton>
-        </Link>
-        <NotificationBell />
-        <WalletConnect />
+        <div className="hidden lg:flex items-center gap-3">
+          <Link to="/leaderboard">
+            <NeoButton variant="secondary" size="sm">
+              <Trophy className="inline h-4 w-4 mr-2" />
+              LEADERBOARD
+            </NeoButton>
+          </Link>
+          <NotificationBell />
+          <WalletConnect />
+        </div>
+        
+        <div className="lg:hidden">
+          <MobileMenuButton 
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)} 
+            isOpen={mobileMenuOpen}
+          />
+        </div>
       </div>
     </header>
+    
+    <MobileMenu 
+      isOpen={mobileMenuOpen} 
+      onToggle={() => setMobileMenuOpen(!mobileMenuOpen)}
+    />
+    </>
   );
 }
