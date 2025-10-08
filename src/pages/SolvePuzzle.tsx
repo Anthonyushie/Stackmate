@@ -55,6 +55,11 @@ export default function SolvePuzzle() {
 
   const [game, setGame] = useState<Chess | null>(null);
   const [boardFen, setBoardFen] = useState<string | null>(null);
+  const renderFen = useMemo(() => {
+    const f = boardFen || localPuzzle?.fen || 'start';
+    try { new Chess(f); } catch { return 'start'; }
+    return f;
+  }, [boardFen, localPuzzle?.fen]);
   const [index, setIndex] = useState(0);
   const [history, setHistory] = useState<string[]>([]);
   const [lastMove, setLastMove] = useState<{ from: Square; to: Square } | null>(null);
@@ -419,8 +424,7 @@ export default function SolvePuzzle() {
                 </div>
 
                 {/* Chess Board */}
-                {!boardFen || !localPuzzle ? (
-                  <div style={{ 
+                {!renderFen || renderFen === 'start' || !localPuzzle ? (                  <div style={{ 
                     aspectRatio: '1', 
                     background: colors.accent, 
                     border: `6px solid ${colors.border}`,
@@ -435,8 +439,9 @@ export default function SolvePuzzle() {
                   </div>
                 ) : (
                   <Chessboard
+                    key={`board-${numericId}-${renderFen}`}
                     {...({
-                      position: boardFen,
+                      position: renderFen,
                       onPieceDrop: onDrop,
                       customBoardStyle: boardStyle,
                       customDarkSquareStyle: { backgroundColor: customDark },
