@@ -33,6 +33,11 @@ function pad(n: number) { return n < 10 ? `0${n}` : `${n}`; }
 export default function ChessPuzzleSolver({ puzzleId, fen, solution, onSolve }: ChessPuzzleSolverProps) {
   const [game, setGame] = useState(() => new Chess(fen));
   const [boardFen, setBoardFen] = useState(fen);
+  const renderFen = useMemo(() => {
+    const f = boardFen || fen || 'start';
+    try { new Chess(f); } catch { return 'start'; }
+    return f;
+  }, [boardFen, fen]);
   const [index, setIndex] = useState(0);
   const [history, setHistory] = useState<string[]>([]);
   const [lastMove, setLastMove] = useState<{ from: Square; to: Square } | null>(null);
@@ -270,8 +275,9 @@ export default function ChessPuzzleSolver({ puzzleId, fen, solution, onSolve }: 
 
         {/* Chess Board */}
         <Chessboard
+          key={`board-${puzzleId}-${renderFen}`}
           {...({
-            position: boardFen,
+            position: renderFen,
             onPieceDrop: onDrop,
             customBoardStyle: boardStyle,
             customDarkSquareStyle: { backgroundColor: customDark },
