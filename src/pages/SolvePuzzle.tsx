@@ -83,8 +83,18 @@ export default function SolvePuzzle() {
 
   const renderFen = useMemo(() => {
     const f = boardFen || localPuzzle?.fen || '';
-    if (!f) return '';
-    try { new Chess(f); } catch { return ''; }
+    console.log('[SolvePuzzle] renderFen calculation:', { boardFen, localPuzzleFen: localPuzzle?.fen, result: f });
+    if (!f) {
+      console.warn('[SolvePuzzle] renderFen is empty!');
+      return '';
+    }
+    try { 
+      new Chess(f); 
+      console.log('[SolvePuzzle] renderFen is valid:', f);
+    } catch (e) { 
+      console.error('[SolvePuzzle] Invalid FEN:', f, e);
+      return ''; 
+    }
     return f;
   }, [boardFen, localPuzzle?.fen]);
 
@@ -426,36 +436,41 @@ export default function SolvePuzzle() {
                 </div>
 
                 {/* Chess Board */}
-                {!renderFen || renderFen === 'start' || !localPuzzle ? (                  <div style={{ 
-                    aspectRatio: '1', 
-                    background: colors.accent, 
-                    border: `6px solid ${colors.border}`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontFamily: "'Space Grotesk', sans-serif",
-                    fontWeight: 900,
-                    fontSize: '24px'
-                  }}>
-                    LOADING BOARD...
-                  </div>
-                ) : (
-                  <Chessboard
-                    key={`board-${numericId}-${renderFen}`}
-                    {...({
-                      position: renderFen,
-                      onPieceDrop: onDrop,
-                      customBoardStyle: boardStyle,
-                      customDarkSquareStyle: { backgroundColor: customDark },
-                      customLightSquareStyle: { backgroundColor: customLight },
-                      customSquareStyles: squareStyles,
-                      boardWidth: boardSize,
-                      animationDuration: 200,
-                      areArrowsAllowed: false,
-                      customPieces: customPieces,
-                    } as any)}
-                  />
-                )}
+                <AnimatePresence mode="wait">
+                  {!renderFen || !localPuzzle ? (
+                    <div 
+                      key="loading-board"
+                      style={{ 
+                        aspectRatio: '1', 
+                        background: colors.accent, 
+                        border: `6px solid ${colors.border}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontFamily: "'Space Grotesk', sans-serif",
+                        fontWeight: 900,
+                        fontSize: '24px'
+                      }}>
+                      LOADING BOARD...
+                    </div>
+                  ) : (
+                    <div key={`chessboard-${numericId}-${renderFen.substring(0, 20)}`}>
+                      <Chessboard
+                        id={`board-${numericId}`}
+                        position={renderFen}
+                        onPieceDrop={onDrop}
+                        customBoardStyle={boardStyle}
+                        customDarkSquareStyle={{ backgroundColor: customDark }}
+                        customLightSquareStyle={{ backgroundColor: customLight }}
+                        customSquareStyles={squareStyles}
+                        boardWidth={boardSize}
+                        animationDuration={200}
+                        areArrowsAllowed={false}
+                        customPieces={customPieces}
+                      />
+                    </div>
+                  )}
+                </AnimatePresence>
 
                 {/* Action Buttons */}
                 <div style={{ display: 'flex', gap: '12px', marginTop: '20px', flexWrap: 'wrap' }}>
