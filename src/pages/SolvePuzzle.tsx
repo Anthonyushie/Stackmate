@@ -63,6 +63,7 @@ export default function SolvePuzzle() {
   const [history, setHistory] = useState<string[]>([]);
   const [lastMove, setLastMove] = useState<{ from: Square; to: Square } | null>(null);
   const [hintMove, setHintMove] = useState<{ from: Square; to: Square } | null>(null);
+  const [moveFrom, setMoveFrom] = useState<Square | null>(null);
   const [wrongShakeKey, setWrongShakeKey] = useState(0);
   const [solved, setSolved] = useState(false);
   const [boardSize, setBoardSize] = useState(720);
@@ -286,6 +287,7 @@ export default function SolvePuzzle() {
     setHistory((h) => [...h, san]);
     setLastMove({ from: mv.from as Square, to: mv.to as Square });
     setHintMove(null);
+    setMoveFrom(null);
     setIndex((i) => i + 1);
     return true;
   }, [game, index, localPuzzle, solved]);
@@ -306,6 +308,66 @@ export default function SolvePuzzle() {
       }
     } catch {}
   }, [game, nextExpectedSan, solved]);
+
+  const onSquareClick = useCallback((square: Square) => {
+    console.log('[SolvePuzzle] onSquareClick:', { square, moveFrom });
+    if (solved || !game || !localPuzzle) return;
+    const g = new Chess(game.fen());
+
+    if (!moveFrom) {
+      const piece = g.get(square as any);
+      if (!piece) return; // empty square
+      // Only allow selecting if it's the side to move
+      if (piece?.color !== g.turn()) {
+        console.warn('[SolvePuzzle] Not your turn to move this color');
+        return;
+      }
+      setMoveFrom(square);
+      return;
+    }
+
+    if (square === moveFrom) {
+      setMoveFrom(null);
+      return;
+    }
+
+    const legal = g.moves({ verbose: true }) as Move[];
+    const candidates = legal.filter((m) => m.from === moveFrom && m.to === square);
+    if (candidates.length === 0) {
+      console.warn('[SolvePuzzle] Click-move illegal:', { from: moveFrom, to: square });
+      setWrongShakeKey((k) => k + 1);
+      setMoveFrom(null);
+      return;
+    }
+
+    const mv = candidates.find((m) => (m.promotion ? m.promotion === 'q' : true)) || candidates[0];
+    const expected = localPuzzle.solution[index];
+    const made = g.move({ from: mv.from, to: mv.to, promotion: mv.promotion || 'q' });
+    if (!made) {
+      console.warn('[SolvePuzzle] Click g.move failed for candidate:', mv);
+      setWrongShakeKey((k) => k + 1);
+      setMoveFrom(null);
+      return;
+    }
+
+    const san = made.san;
+    const normalize = (s: string) => s.replace(/[+#]+$/g, '');
+    const ok = normalize(san) === normalize(expected);
+    console.log('[SolvePuzzle] Click move made:', { san, expected, ok, normalizedSan: normalize(san), normalizedExpected: normalize(expected) });
+    if (!ok) {
+      setWrongShakeKey((k) => k + 1);
+      setMoveFrom(null);
+      return;
+    }
+
+    setGame(g);
+    setBoardFen(g.fen());
+    setHistory((h) => [...h, san]);
+    setLastMove({ from: mv.from as Square, to: mv.to as Square });
+    setHintMove(null);
+    setMoveFrom(null);
+    setIndex((i) => i + 1);
+  }, [game, index, localPuzzle, moveFrom, solved]);
 
   const totalTime = useMemo(() => elapsed + penalties, [elapsed, penalties]);
 
@@ -353,8 +415,11 @@ export default function SolvePuzzle() {
       styles[hintMove.from] = { background: colors.accent, opacity: 0.5, boxShadow: `inset 0 0 0 4px ${colors.accent}` };
       styles[hintMove.to] = { background: colors.accent, opacity: 0.7, boxShadow: `inset 0 0 0 4px ${colors.accent}` };
     }
+    if (moveFrom) {
+      styles[moveFrom] = { ...(styles[moveFrom] || {}), outline: `3px solid ${colors.dark}`, outlineOffset: -3 } as any;
+    }
     return styles;
-  }, [lastMove, hintMove]);
+  }, [lastMove, hintMove, moveFrom]);
 
   const customPieces = useMemo(() => {
     const map: Record<string, (props: { squareWidth: number }) => React.ReactElement> = {};
@@ -494,6 +559,8 @@ export default function SolvePuzzle() {
                         id={`board-${numericId}`}
                         position={renderFen}
                         onPieceDrop={onDrop}
+                        onSquareClick={onSquareClick as any}
+                        arePiecesDraggable={true}
                         customBoardStyle={boardStyle}
                         customDarkSquareStyle={{ backgroundColor: customDark }}
                         customLightSquareStyle={{ backgroundColor: customLight }}
