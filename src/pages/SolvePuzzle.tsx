@@ -54,7 +54,7 @@ export default function SolvePuzzle() {
   const [penalties, setPenalties] = useState(0);
 
   const [game, setGame] = useState<Chess | null>(null);
-  const [boardFen, setBoardFen] = useState('');
+  const [boardFen, setBoardFen] = useState<string | null>(null);
   const [index, setIndex] = useState(0);
   const [history, setHistory] = useState<string[]>([]);
   const [lastMove, setLastMove] = useState<{ from: Square; to: Square } | null>(null);
@@ -66,9 +66,18 @@ export default function SolvePuzzle() {
 
   const localPuzzle: Puzzle | null = useMemo(() => {
     const list = getPuzzlesByDifficulty(difficulty as any);
-    if (!list || !list.length) return null;
-    if (!Number.isFinite(numericId) || numericId <= 0) return list[0];
+    console.log('[SolvePuzzle] Getting puzzle for difficulty:', difficulty, 'puzzleId:', numericId);
+    console.log('[SolvePuzzle] Available puzzles:', list?.length || 0);
+    if (!list || !list.length) {
+      console.warn('[SolvePuzzle] No puzzles found for difficulty:', difficulty);
+      return null;
+    }
+    if (!Number.isFinite(numericId) || numericId <= 0) {
+      console.log('[SolvePuzzle] Invalid puzzleId, using first puzzle');
+      return list[0];
+    }
     const idx = (Math.abs(numericId - 1)) % list.length;
+    console.log('[SolvePuzzle] Selected puzzle index:', idx, 'puzzle:', list[idx]?.id, 'FEN:', list[idx]?.fen);
     return list[idx];
   }, [difficulty, numericId]);
 
@@ -146,17 +155,26 @@ export default function SolvePuzzle() {
   }, []);
 
   useEffect(() => {
-    if (!localPuzzle) return;
-    const g = new Chess(localPuzzle.fen);
-    setGame(g);
-    setBoardFen(localPuzzle.fen);
-    setIndex(0);
-    setHistory([]);
-    setLastMove(null);
-    setHintMove(null);
-    setSolved(false);
-    setElapsed(0);
-    setPenalties(0);
+    if (!localPuzzle) {
+      console.log('[SolvePuzzle] No localPuzzle available');
+      return;
+    }
+    console.log('[SolvePuzzle] Loading puzzle:', { id: localPuzzle.id, fen: localPuzzle.fen, solution: localPuzzle.solution });
+    try {
+      const g = new Chess(localPuzzle.fen);
+      setGame(g);
+      setBoardFen(localPuzzle.fen);
+      setIndex(0);
+      setHistory([]);
+      setLastMove(null);
+      setHintMove(null);
+      setSolved(false);
+      setElapsed(0);
+      setPenalties(0);
+      console.log('[SolvePuzzle] Puzzle loaded successfully, boardFen set to:', localPuzzle.fen);
+    } catch (e) {
+      console.error('[SolvePuzzle] Error loading puzzle:', e);
+    }
   }, [localPuzzle?.id, localPuzzle?.fen]);
 
   useEffect(() => {
@@ -401,7 +419,21 @@ export default function SolvePuzzle() {
                 </div>
 
                 {/* Chess Board */}
-                {boardFen && (
+                {!boardFen || !localPuzzle ? (
+                  <div style={{ 
+                    aspectRatio: '1', 
+                    background: colors.accent, 
+                    border: `6px solid ${colors.border}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontFamily: "'Space Grotesk', sans-serif",
+                    fontWeight: 900,
+                    fontSize: '24px'
+                  }}>
+                    LOADING BOARD...
+                  </div>
+                ) : (
                   <Chessboard
                     {...({
                       position: boardFen,
