@@ -314,14 +314,22 @@ export default function useNotifications() {
   useEffect(() => {
     let id: any;
     let stopped = false;
+    let isPolling = false;
 
     const run = async () => {
       if (document.visibilityState !== 'visible') return;
-      await pollOnce();
+      if (isPolling) return; // Prevent concurrent polls
+      isPolling = true;
+      try {
+        await pollOnce();
+      } finally {
+        isPolling = false;
+      }
     };
 
     run();
-    id = setInterval(run, 60_000);
+    // Increased interval from 60s to 120s to reduce API load
+    id = setInterval(run, 120_000);
 
     const onVis = () => { if (!stopped && document.visibilityState === 'visible') run(); };
     document.addEventListener('visibilitychange', onVis);

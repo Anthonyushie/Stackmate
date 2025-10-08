@@ -147,7 +147,7 @@ export default function ClaimPrizeModal({ isOpen, onClose, puzzleId, difficulty,
                 scale: status === 'success' ? [1, 1.2, 1] : 1, 
                 rotate: status === 'success' ? [0, -10, 10, 0] : 0 
               }}
-              transition={{ type: 'spring', stiffness: 300, repeat: status === 'success' ? 3 : 0 }}
+              transition={{ duration: 0.6, ease: 'easeInOut', repeat: status === 'success' ? 3 : 0 }}
               style={{
                 marginBottom: '24px',
                 textAlign: 'center',
@@ -183,7 +183,7 @@ export default function ClaimPrizeModal({ isOpen, onClose, puzzleId, difficulty,
                 scale: [1, 1.1, 1], 
                 rotate: [0, -2, 2, 0] 
               } : {}}
-              transition={{ duration: 0.5, type: 'spring', stiffness: 300 }}
+              transition={{ duration: 0.5, ease: 'easeInOut' }}
               style={{
                 background: colors.dark,
                 border: `6px solid ${colors.border}`,

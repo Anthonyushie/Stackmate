@@ -99,10 +99,9 @@ export default function EnterPuzzleModal({ isOpen, onClose, puzzleId, difficulty
         return;
       }
       setStatus('success');
-      setTimeout(() => {
-        navigate(`/solve/${difficulty}/${String(puzzleId)}`);
-        onClose?.();
-      }, 1200);
+      // Navigate immediately to prevent redirect issues
+      onClose?.();
+      navigate(`/solve/${difficulty}/${String(puzzleId)}`);
     } catch (e: any) {
       setError(e?.message || 'Entry failed');
       setStatus('failed');
