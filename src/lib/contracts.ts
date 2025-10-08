@@ -72,7 +72,9 @@ const pollTx = async (txId: string, network: NetworkName, onStatus?: OnStatus): 
   const base = getApiBaseUrl(network);
   const url = `${base}/extended/v1/tx/${txId}`;
   let tries = 0;
-  for (;;) {
+  const MAX_TRIES = 60; // Maximum 60 tries (~6 minutes with delays)
+  
+  while (tries < MAX_TRIES) {
     try {
       const res = await fetch(url);
       if (res.ok) {
@@ -95,6 +97,12 @@ const pollTx = async (txId: string, network: NetworkName, onStatus?: OnStatus): 
     tries += 1;
     await new Promise(r => setTimeout(r, Math.min(6000, 1000 + tries * 300)));
   }
+  
+  // If we've exhausted all tries, mark as failed
+  console.warn(`[pollTx] Polling timeout after ${MAX_TRIES} tries for txId: ${txId}`);
+  txManager.failed(txId, 'Polling timeout');
+  onStatus?.('failed', { txId, reason: 'Polling timeout' });
+  return 'failed';
 };
 
 const requestContractCall = async (params: any): Promise<{ txId?: string; error?: string }> => {
@@ -389,8 +397,11 @@ export async function getLeaderboard({ puzzleId, network }: ReadLeaderboardParam
     const data = await res.json();
     let items = Array.isArray(data.results) ? data.results : [];
   const PAGE_LIMIT = 50;
+  const MAX_PAGES = 10; // Limit to 10 pages (500 transactions max)
   let offset = items.length;
-  for (;;) {
+  let pageCount = 0;
+  
+  while (pageCount < MAX_PAGES) {
     if (items.length < PAGE_LIMIT) break;
     const pageUrl = `${base}/extended/v1/address/${principal}/transactions?limit=${PAGE_LIMIT}&offset=${offset}`;
     const res2 = await fetch(pageUrl);
@@ -401,6 +412,7 @@ export async function getLeaderboard({ puzzleId, network }: ReadLeaderboardParam
     items = items.concat(next);
     if (next.length < PAGE_LIMIT) break;
     offset += next.length;
+    pageCount++;
   }
     const out: LeaderboardEntry[] = [];
     for (const tx of items) {

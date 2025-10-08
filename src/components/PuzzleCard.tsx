@@ -240,7 +240,7 @@ export default function PuzzleCard({
           scale: [1, 1.1, 1], 
           rotate: [0, -3, 3, 0] 
         } : {}}
-        transition={{ duration: 0.5, type: 'spring', stiffness: 300 }}
+        transition={{ duration: 0.5, ease: 'easeInOut' }}
         style={{
           background: colors.dark,
           border: `6px solid ${colors.border}`,
