@@ -53,7 +53,11 @@ export default function SolvePuzzle() {
   const [elapsed, setElapsed] = useState(0);
   const [penalties, setPenalties] = useState(0);
 
-  const [game, setGame] = useState<Chess | null>(null);
+  const [game, setGame] = useState<Chess | null>(() => {
+    // Initialize game immediately if localPuzzle exists
+    // This will be updated by useEffect but provides a fallback
+    return null;
+  });
   const [boardFen, setBoardFen] = useState<string | null>(null);
   const [index, setIndex] = useState(0);
   const [history, setHistory] = useState<string[]>([]);
@@ -183,9 +187,14 @@ export default function SolvePuzzle() {
       console.log('[SolvePuzzle] No localPuzzle available - returning early');
       return;
     }
+    if (!localPuzzle.fen) {
+      console.error('[SolvePuzzle] localPuzzle exists but has no FEN!', localPuzzle);
+      return;
+    }
     console.log('[SolvePuzzle] Loading puzzle:', { id: localPuzzle.id, fen: localPuzzle.fen, solution: localPuzzle.solution });
     try {
       const g = new Chess(localPuzzle.fen);
+      console.log('[SolvePuzzle] Chess instance created successfully');
       setGame(g);
       setBoardFen(localPuzzle.fen);
       setIndex(0);
@@ -195,11 +204,11 @@ export default function SolvePuzzle() {
       setSolved(false);
       setElapsed(0);
       setPenalties(0);
-      console.log('[SolvePuzzle] Puzzle loaded successfully, boardFen set to:', localPuzzle.fen);
+      console.log('[SolvePuzzle] Puzzle loaded successfully, game set:', !!g, 'boardFen set to:', localPuzzle.fen);
     } catch (e) {
       console.error('[SolvePuzzle] Error loading puzzle:', e);
     }
-  }, [localPuzzle?.id, localPuzzle?.fen]);
+  }, [localPuzzle]);
 
   useEffect(() => {
     if (!localPuzzle) return;
@@ -444,17 +453,18 @@ export default function SolvePuzzle() {
 
                 {/* Chess Board */}
                 {(() => {
-                  const shouldShowBoard = !!renderFen && !!localPuzzle;
+                  const shouldShowBoard = !!renderFen && !!localPuzzle && !!game;
                   console.log('[SolvePuzzle] Board render check:', { 
                     renderFen, 
                     hasLocalPuzzle: !!localPuzzle, 
+                    hasGame: !!game,
                     renderFenLength: renderFen?.length,
                     shouldShowBoard 
                   });
                   return null;
                 })()}
                 <AnimatePresence mode="wait">
-                  {!renderFen || !localPuzzle ? (
+                  {!renderFen || !localPuzzle || !game ? (
                     <div 
                       key="loading-board"
                       style={{ 
