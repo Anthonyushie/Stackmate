@@ -254,11 +254,14 @@ export default function SolvePuzzle() {
   }, [index, localPuzzle?.solution?.length]);
 
   const onDrop = useCallback((sourceSquare: Square, targetSquare: Square) => {
+    console.log('[SolvePuzzle] onDrop called:', { sourceSquare, targetSquare, solved, hasGame: !!game, index, expected: localPuzzle?.solution?.[index] });
     if (solved || !game || !localPuzzle) return false;
     const g = new Chess(game.fen());
     const legal = g.moves({ verbose: true }) as Move[];
     const candidates = legal.filter((m) => m.from === sourceSquare && m.to === targetSquare);
+    console.log('[SolvePuzzle] onDrop legal moves count:', legal.length, 'candidates:', candidates);
     if (candidates.length === 0) {
+      console.warn('[SolvePuzzle] No legal move for drop');
       setWrongShakeKey((k) => k + 1);
       return false;
     }
@@ -266,11 +269,15 @@ export default function SolvePuzzle() {
     const expected = localPuzzle.solution[index];
     const made = g.move({ from: mv.from, to: mv.to, promotion: mv.promotion });
     if (!made) {
+      console.warn('[SolvePuzzle] g.move failed for candidate:', mv);
       setWrongShakeKey((k) => k + 1);
       return false;
     }
     const san = made.san;
-    if (san !== expected) {
+    const normalize = (s: string) => s.replace(/[+#]+$/g, '');
+    const ok = normalize(san) === normalize(expected);
+    console.log('[SolvePuzzle] Move made:', { san, expected, ok, normalizedSan: normalize(san), normalizedExpected: normalize(expected) });
+    if (!ok) {
       setWrongShakeKey((k) => k + 1);
       return false;
     }
