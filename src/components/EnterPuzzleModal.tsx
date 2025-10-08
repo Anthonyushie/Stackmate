@@ -88,8 +88,15 @@ export default function EnterPuzzleModal({ isOpen, onClose, puzzleId, difficulty
           setStatus(s);
           if (d?.txId) setTxId(d.txId);
           if (s === 'requesting_signature') toastMsg('Open your wallet to sign the entry', 'info');
-          if (s === 'submitted') toastMsg('Transaction submitted. Waiting for confirmation…', 'info');
-          if (s === 'success') toastMsg('Entry confirmed! Time to solve 🎯', 'success');
+          if (s === 'submitted') {
+            toastMsg('Transaction submitted! Starting puzzle...', 'success');
+            // Redirect immediately after submission, don't wait for confirmation
+            setTimeout(() => {
+              onClose?.();
+              navigate(`/solve/${difficulty}/${String(puzzleId)}`);
+            }, 500);
+          }
+          if (s === 'success') toastMsg('Entry confirmed on blockchain! 🎯', 'success');
           if (s === 'failed') toastMsg('Entry failed. Please try again.', 'error');
         },
       });
@@ -98,10 +105,6 @@ export default function EnterPuzzleModal({ isOpen, onClose, puzzleId, difficulty
         setStatus('failed');
         return;
       }
-      setStatus('success');
-      // Navigate immediately to prevent redirect issues
-      onClose?.();
-      navigate(`/solve/${difficulty}/${String(puzzleId)}`);
     } catch (e: any) {
       setError(e?.message || 'Entry failed');
       setStatus('failed');
