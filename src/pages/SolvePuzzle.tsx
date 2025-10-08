@@ -55,11 +55,6 @@ export default function SolvePuzzle() {
 
   const [game, setGame] = useState<Chess | null>(null);
   const [boardFen, setBoardFen] = useState<string | null>(null);
-  const renderFen = useMemo(() => {
-    const f = boardFen || localPuzzle?.fen || 'start';
-    try { new Chess(f); } catch { return 'start'; }
-    return f;
-  }, [boardFen, localPuzzle?.fen]);
   const [index, setIndex] = useState(0);
   const [history, setHistory] = useState<string[]>([]);
   const [lastMove, setLastMove] = useState<{ from: Square; to: Square } | null>(null);
@@ -85,6 +80,13 @@ export default function SolvePuzzle() {
     console.log('[SolvePuzzle] Selected puzzle index:', idx, 'puzzle:', list[idx]?.id, 'FEN:', list[idx]?.fen);
     return list[idx];
   }, [difficulty, numericId]);
+
+  const renderFen = useMemo(() => {
+    const f = boardFen || localPuzzle?.fen || '';
+    if (!f) return '';
+    try { new Chess(f); } catch { return ''; }
+    return f;
+  }, [boardFen, localPuzzle?.fen]);
 
   useEffect(() => {
     let alive = true;
