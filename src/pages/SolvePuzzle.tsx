@@ -83,19 +83,25 @@ export default function SolvePuzzle() {
 
   const renderFen = useMemo(() => {
     const f = boardFen || localPuzzle?.fen || '';
-    console.log('[SolvePuzzle] renderFen calculation:', { boardFen, localPuzzleFen: localPuzzle?.fen, result: f });
+    console.log('[SolvePuzzle] renderFen calculation:', { 
+      boardFen, 
+      localPuzzleFen: localPuzzle?.fen, 
+      result: f,
+      isEmpty: !f,
+      length: f?.length 
+    });
     if (!f) {
-      console.warn('[SolvePuzzle] renderFen is empty!');
+      console.warn('[SolvePuzzle] renderFen is empty! boardFen:', boardFen, 'localPuzzle.fen:', localPuzzle?.fen);
       return '';
     }
     try { 
-      new Chess(f); 
-      console.log('[SolvePuzzle] renderFen is valid:', f);
+      const testGame = new Chess(f); 
+      console.log('[SolvePuzzle] renderFen is valid:', f, 'Created game:', testGame.fen());
+      return f;
     } catch (e) { 
-      console.error('[SolvePuzzle] Invalid FEN:', f, e);
+      console.error('[SolvePuzzle] Invalid FEN:', f, 'Error:', e);
       return ''; 
     }
-    return f;
   }, [boardFen, localPuzzle?.fen]);
 
   useEffect(() => {
@@ -172,8 +178,9 @@ export default function SolvePuzzle() {
   }, []);
 
   useEffect(() => {
+    console.log('[SolvePuzzle] useEffect triggered with localPuzzle:', localPuzzle, 'id:', localPuzzle?.id, 'fen:', localPuzzle?.fen);
     if (!localPuzzle) {
-      console.log('[SolvePuzzle] No localPuzzle available');
+      console.log('[SolvePuzzle] No localPuzzle available - returning early');
       return;
     }
     console.log('[SolvePuzzle] Loading puzzle:', { id: localPuzzle.id, fen: localPuzzle.fen, solution: localPuzzle.solution });
@@ -436,6 +443,16 @@ export default function SolvePuzzle() {
                 </div>
 
                 {/* Chess Board */}
+                {(() => {
+                  const shouldShowBoard = !!renderFen && !!localPuzzle;
+                  console.log('[SolvePuzzle] Board render check:', { 
+                    renderFen, 
+                    hasLocalPuzzle: !!localPuzzle, 
+                    renderFenLength: renderFen?.length,
+                    shouldShowBoard 
+                  });
+                  return null;
+                })()}
                 <AnimatePresence mode="wait">
                   {!renderFen || !localPuzzle ? (
                     <div 
@@ -455,6 +472,7 @@ export default function SolvePuzzle() {
                     </div>
                   ) : (
                     <div key={`chessboard-${numericId}-${renderFen.substring(0, 20)}`}>
+                      {console.log('[SolvePuzzle] Rendering Chessboard with position:', renderFen, 'boardSize:', boardSize)}
                       <Chessboard
                         id={`board-${numericId}`}
                         position={renderFen}
