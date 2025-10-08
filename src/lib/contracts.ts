@@ -258,8 +258,15 @@ export async function enterPuzzle({ puzzleId, entryFee, sender, network, onStatu
     console.log('[enterPuzzle] Got txId:', txId);
     txManager.submitted(txId, network, 'enter-puzzle');
     onStatus?.('submitted', { txId });
-    const f = await pollTx(txId, network, onStatus);
-    return { ok: f === 'success', txId };
+    
+    // Poll in background without blocking - return immediately after submission
+    pollTx(txId, network, onStatus).then((result) => {
+      console.log('[enterPuzzle] Transaction confirmed:', result);
+    }).catch((err) => {
+      console.error('[enterPuzzle] Polling error:', err);
+    });
+    
+    return { ok: true, txId };
   } catch (e: any) {
     if (e?.message?.includes('cancel')) {
       return { ok: false, error: 'User canceled' };
