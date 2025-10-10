@@ -2,8 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Chess, type Move, type Square } from 'chess.js';
-import ChessgroundBoard from '../components/ChessgroundBoard';
-import type { Key } from 'chessground/types';
+import SimpleChessBoard from '../components/SimpleChessBoard';
 import { Trophy, Users, Lightbulb, RotateCcw, FlagTriangleRight, X, PartyPopper, Flame } from 'lucide-react';
 import useWallet from '../hooks/useWallet';
 import { getPuzzlesByDifficulty, type Puzzle, hashSolution } from '../lib/puzzles-db';
@@ -253,16 +252,19 @@ export default function SolvePuzzle() {
 
   const onMove = useCallback((from: string, to: string) => {
     console.log('[SolvePuzzle] onMove called:', { from, to, solved, hasGame: !!game, index, expected: localPuzzle?.solution?.[index] });
-    if (solved || !game || !localPuzzle) return;
+    if (solved || !game || !localPuzzle) {
+      console.warn('[SolvePuzzle] Move rejected - solved:', solved, 'hasGame:', !!game, 'hasLocalPuzzle:', !!localPuzzle);
+      return;
+    }
     
     const g = new Chess(game.fen());
     const legal = g.moves({ verbose: true }) as Move[];
     const candidates = legal.filter((m) => m.from === from && m.to === to);
     
-    console.log('[SolvePuzzle] legal moves count:', legal.length, 'candidates:', candidates);
+    console.log('[SolvePuzzle] Legal moves:', legal.length, 'Candidates for', from, '->', to, ':', candidates.length);
     
     if (candidates.length === 0) {
-      console.warn('[SolvePuzzle] No legal move');
+      console.warn('[SolvePuzzle] No legal move from', from, 'to', to);
       setWrongShakeKey((k) => k + 1);
       return;
     }
@@ -272,7 +274,7 @@ export default function SolvePuzzle() {
     const made = g.move({ from: mv.from, to: mv.to, promotion: mv.promotion || 'q' });
     
     if (!made) {
-      console.warn('[SolvePuzzle] g.move failed for candidate:', mv);
+      console.error('[SolvePuzzle] Chess.js move() failed for:', mv);
       setWrongShakeKey((k) => k + 1);
       return;
     }
@@ -281,13 +283,21 @@ export default function SolvePuzzle() {
     const normalize = (s: string) => s.replace(/[+#]+$/g, '');
     const ok = normalize(san) === normalize(expected);
     
-    console.log('[SolvePuzzle] Move made:', { san, expected, ok, normalizedSan: normalize(san), normalizedExpected: normalize(expected) });
+    console.log('[SolvePuzzle] Move validation:', { 
+      made: san, 
+      expected, 
+      ok, 
+      normalizedMade: normalize(san), 
+      normalizedExpected: normalize(expected) 
+    });
     
     if (!ok) {
+      console.warn('[SolvePuzzle] Wrong move! Expected:', expected, 'but got:', san);
       setWrongShakeKey((k) => k + 1);
       return;
     }
     
+    console.log('[SolvePuzzle] ✅ Correct move! Updating state...');
     setGame(g);
     setBoardFen(g.fen());
     setHistory((h) => [...h, san]);
@@ -312,27 +322,6 @@ export default function SolvePuzzle() {
       }
     } catch {}
   }, [game, nextExpectedSan, solved]);
-
-  // Compute legal moves in Chessground format
-  const legalMoves = useMemo(() => {
-    if (!game || solved) return new Map<Key, Key[]>();
-    const dests = new Map<Key, Key[]>();
-    const moves = game.moves({ verbose: true }) as Move[];
-    moves.forEach((m) => {
-      const from = m.from as Key;
-      const to = m.to as Key;
-      if (!dests.has(from)) {
-        dests.set(from, []);
-      }
-      dests.get(from)!.push(to);
-    });
-    return dests;
-  }, [game, solved, boardFen]);
-
-  const turnColor = useMemo(() => {
-    if (!game) return 'white' as const;
-    return game.turn() === 'w' ? ('white' as const) : ('black' as const);
-  }, [game, boardFen]);
 
   const totalTime = useMemo(() => elapsed + penalties, [elapsed, penalties]);
 
@@ -478,19 +467,12 @@ export default function SolvePuzzle() {
                       LOADING BOARD...
                     </div>
                   ) : (
-                    <div key={`chessground-${numericId}-${renderFen.substring(0, 20)}`} style={{ border: `6px solid ${colors.border}` }}>
-                      {console.log('[SolvePuzzle] Rendering ChessgroundBoard with position:', renderFen)}
-                      <ChessgroundBoard
+                    <div key={`simpleboard-${numericId}-${renderFen.substring(0, 20)}`}>
+                      {console.log('[SolvePuzzle] Rendering SimpleChessBoard with position:', renderFen)}
+                      <SimpleChessBoard
                         fen={renderFen}
                         onMove={onMove}
-                        orientation="white"
-                        movable={{
-                          free: false,
-                          color: turnColor,
-                          dests: legalMoves,
-                        }}
-                        lastMove={lastMove ? [lastMove.from as Key, lastMove.to as Key] : undefined}
-                        turnColor={turnColor}
+                        lastMove={lastMove}
                       />
                     </div>
                   )}
