@@ -237,7 +237,7 @@ export async function enterPuzzle({ puzzleId, entryFee, sender, network, onStatu
         network: getNetwork(network),
         onFinish: (data) => {
           console.log('[enterPuzzle] Transaction finished:', data);
-          const tid = data?.txId || (data as any)?.transaction?.txid || data?.txid;
+          const tid = data?.txId || (data as any)?.transaction?.txid || (data as any)?.txid;
           if (tid) {
             resolve(tid);
           } else {

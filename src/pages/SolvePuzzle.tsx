@@ -554,12 +554,17 @@ export default function SolvePuzzle() {
                     </div>
                   ) : (
                     <div key={`chessboard-${numericId}-${renderFen.substring(0, 20)}`}>
-                      {console.log('[SolvePuzzle] Rendering Chessboard with position:', renderFen, 'boardSize:', boardSize)}
+
                       <Chessboard
-                        id={`board-${numericId}`}
+
                         position={renderFen}
                         onPieceDrop={onDrop}
                         onSquareClick={onSquareClick as any}
+                        isDraggablePiece={({ piece }: any) => {
+                          if (!game) return false;
+                          const turn = new Chess(game.fen()).turn();
+                          return piece?.startsWith(turn);
+                        }}
                         arePiecesDraggable={true}
                         customBoardStyle={boardStyle}
                         customDarkSquareStyle={{ backgroundColor: customDark }}

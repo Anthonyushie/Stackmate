@@ -279,6 +279,10 @@ export default function ChessPuzzleSolver({ puzzleId, fen, solution, onSolve }: 
           {...({
             position: renderFen,
             onPieceDrop: onDrop,
+            isDraggablePiece: ({ piece }: any) => {
+              const turn = new Chess(game.fen()).turn();
+              return piece?.startsWith(turn);
+            },
             customBoardStyle: boardStyle,
             customDarkSquareStyle: { backgroundColor: customDark },
             customLightSquareStyle: { backgroundColor: customLight },
