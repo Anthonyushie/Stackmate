@@ -278,7 +278,7 @@ export default function ChessPuzzleSolver({ puzzleId, fen, solution, onSolve }: 
           key={`board-${puzzleId}-${renderFen}`}
           position={renderFen}
           onPieceDrop={onDrop}
-          arePiecesDraggable={!solved}
+          arePiecesDraggable={false}
           isDraggablePiece={({ piece }: any) => {
             if (solved) return false;
             const turn = game.turn();

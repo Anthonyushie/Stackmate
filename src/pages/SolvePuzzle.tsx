@@ -255,33 +255,58 @@ export default function SolvePuzzle() {
   }, [index, localPuzzle?.solution?.length]);
 
   const onDrop = useCallback((sourceSquare: Square, targetSquare: Square) => {
-    console.log('[SolvePuzzle] onDrop called:', { sourceSquare, targetSquare, solved, hasGame: !!game, index, expected: localPuzzle?.solution?.[index] });
-    if (solved || !game || !localPuzzle) return false;
+    console.log('[SolvePuzzle] ===== MOVE ATTEMPT =====')
+    console.log('[SolvePuzzle] From:', sourceSquare, 'To:', targetSquare);
+    console.log('[SolvePuzzle] Current index:', index);
+    console.log('[SolvePuzzle] Expected solution move:', localPuzzle?.solution?.[index]);
+    console.log('[SolvePuzzle] Full solution:', localPuzzle?.solution);
+    
+    if (solved || !game || !localPuzzle) {
+      console.warn('[SolvePuzzle] REJECTED: solved=', solved, 'game=', !!game, 'puzzle=', !!localPuzzle);
+      return false;
+    }
+    
     const g = new Chess(game.fen());
     const legal = g.moves({ verbose: true }) as Move[];
     const candidates = legal.filter((m) => m.from === sourceSquare && m.to === targetSquare);
-    console.log('[SolvePuzzle] onDrop legal moves count:', legal.length, 'candidates:', candidates);
+    
+    console.log('[SolvePuzzle] Legal moves from', sourceSquare, ':', legal.filter(m => m.from === sourceSquare).map(m => m.san));
+    console.log('[SolvePuzzle] Candidates for this drop:', candidates);
+    
     if (candidates.length === 0) {
-      console.warn('[SolvePuzzle] No legal move for drop');
+      console.warn('[SolvePuzzle] REJECTED: No legal move');
       setWrongShakeKey((k) => k + 1);
       return false;
     }
+    
     const mv = candidates.find((m) => (m.promotion ? m.promotion === 'q' : true)) || candidates[0];
     const expected = localPuzzle.solution[index];
-    const made = g.move({ from: mv.from, to: mv.to, promotion: mv.promotion });
+    const made = g.move({ from: mv.from, to: mv.to, promotion: mv.promotion || 'q' });
+    
     if (!made) {
-      console.warn('[SolvePuzzle] g.move failed for candidate:', mv);
+      console.warn('[SolvePuzzle] REJECTED: g.move() failed');
       setWrongShakeKey((k) => k + 1);
       return false;
     }
+    
     const san = made.san;
     const normalize = (s: string) => s.replace(/[+#]+$/g, '');
     const ok = normalize(san) === normalize(expected);
-    console.log('[SolvePuzzle] Move made:', { san, expected, ok, normalizedSan: normalize(san), normalizedExpected: normalize(expected) });
+    
+    console.log('[SolvePuzzle] Move SAN:', san);
+    console.log('[SolvePuzzle] Expected SAN:', expected);
+    console.log('[SolvePuzzle] Normalized your move:', normalize(san));
+    console.log('[SolvePuzzle] Normalized expected:', normalize(expected));
+    console.log('[SolvePuzzle] Match:', ok);
+    
     if (!ok) {
+      console.warn('[SolvePuzzle] REJECTED: Move does not match expected solution');
+      console.warn('[SolvePuzzle] You tried:', san, 'but puzzle expects:', expected);
       setWrongShakeKey((k) => k + 1);
       return false;
     }
+    
+    console.log('[SolvePuzzle] ✅ ACCEPTED!');
     setGame(g);
     setBoardFen(g.fen());
     setHistory((h) => [...h, san]);
@@ -289,6 +314,8 @@ export default function SolvePuzzle() {
     setHintMove(null);
     setMoveFrom(null);
     setIndex((i) => i + 1);
+    console.log('[SolvePuzzle] Updated board to:', g.fen());
+    console.log('[SolvePuzzle] ======================');
     return true;
   }, [game, index, localPuzzle, solved]);
 
@@ -310,31 +337,47 @@ export default function SolvePuzzle() {
   }, [game, nextExpectedSan, solved]);
 
   const onSquareClick = useCallback((square: Square) => {
-    console.log('[SolvePuzzle] onSquareClick:', { square, moveFrom });
+    console.log('[SolvePuzzle] ===== CLICK =====');
+    console.log('[SolvePuzzle] Clicked square:', square);
+    console.log('[SolvePuzzle] Previously selected:', moveFrom);
+    
     if (solved || !game || !localPuzzle) return;
     const g = new Chess(game.fen());
 
+    // First click - select a piece
     if (!moveFrom) {
       const piece = g.get(square as any);
-      if (!piece) return; // empty square
-      // Only allow selecting if it's the side to move
-      if (piece?.color !== g.turn()) {
-        console.warn('[SolvePuzzle] Not your turn to move this color');
+      if (!piece) {
+        console.log('[SolvePuzzle] Empty square, ignoring');
         return;
       }
+      if (piece?.color !== g.turn()) {
+        console.warn('[SolvePuzzle] Wrong color - it\'s', g.turn() === 'w' ? 'white' : 'black', 'to move');
+        return;
+      }
+      console.log('[SolvePuzzle] ✓ Piece selected:', piece.type, 'on', square);
+      console.log('[SolvePuzzle] Now click the destination square');
       setMoveFrom(square);
       return;
     }
 
+    // Clicking same square - deselect
     if (square === moveFrom) {
+      console.log('[SolvePuzzle] Deselecting piece');
       setMoveFrom(null);
       return;
     }
 
+    // Second click - make the move
+    console.log('[SolvePuzzle] Attempting move from', moveFrom, 'to', square);
+    console.log('[SolvePuzzle] Expected solution move:', localPuzzle.solution[index]);
+    
     const legal = g.moves({ verbose: true }) as Move[];
     const candidates = legal.filter((m) => m.from === moveFrom && m.to === square);
+    
     if (candidates.length === 0) {
-      console.warn('[SolvePuzzle] Click-move illegal:', { from: moveFrom, to: square });
+      console.warn('[SolvePuzzle] REJECTED: Not a legal move');
+      console.log('[SolvePuzzle] Legal moves from', moveFrom, ':', legal.filter(m => m.from === moveFrom).map(m => m.to));
       setWrongShakeKey((k) => k + 1);
       setMoveFrom(null);
       return;
@@ -343,8 +386,9 @@ export default function SolvePuzzle() {
     const mv = candidates.find((m) => (m.promotion ? m.promotion === 'q' : true)) || candidates[0];
     const expected = localPuzzle.solution[index];
     const made = g.move({ from: mv.from, to: mv.to, promotion: mv.promotion || 'q' });
+    
     if (!made) {
-      console.warn('[SolvePuzzle] Click g.move failed for candidate:', mv);
+      console.warn('[SolvePuzzle] REJECTED: Move execution failed');
       setWrongShakeKey((k) => k + 1);
       setMoveFrom(null);
       return;
@@ -353,13 +397,20 @@ export default function SolvePuzzle() {
     const san = made.san;
     const normalize = (s: string) => s.replace(/[+#]+$/g, '');
     const ok = normalize(san) === normalize(expected);
-    console.log('[SolvePuzzle] Click move made:', { san, expected, ok, normalizedSan: normalize(san), normalizedExpected: normalize(expected) });
+    
+    console.log('[SolvePuzzle] Move made:', san);
+    console.log('[SolvePuzzle] Expected:', expected);
+    console.log('[SolvePuzzle] Match:', ok);
+    
     if (!ok) {
+      console.warn('[SolvePuzzle] REJECTED: Wrong move!');
+      console.warn('[SolvePuzzle] You played:', san, 'but puzzle expects:', expected);
       setWrongShakeKey((k) => k + 1);
       setMoveFrom(null);
       return;
     }
 
+    console.log('[SolvePuzzle] ✅ CORRECT MOVE!');
     setGame(g);
     setBoardFen(g.fen());
     setHistory((h) => [...h, san]);
@@ -367,6 +418,7 @@ export default function SolvePuzzle() {
     setHintMove(null);
     setMoveFrom(null);
     setIndex((i) => i + 1);
+    console.log('[SolvePuzzle] ======================');
   }, [game, index, localPuzzle, moveFrom, solved]);
 
   const totalTime = useMemo(() => elapsed + penalties, [elapsed, penalties]);
@@ -560,7 +612,7 @@ export default function SolvePuzzle() {
                         position={renderFen}
                         onPieceDrop={onDrop}
                         onSquareClick={onSquareClick as any}
-                        arePiecesDraggable={!solved}
+                        arePiecesDraggable={false}
                         isDraggablePiece={({ piece }: any) => {
                           if (!game || solved) {
                             console.log('[SolvePuzzle] isDraggablePiece: blocked', { hasGame: !!game, solved });
