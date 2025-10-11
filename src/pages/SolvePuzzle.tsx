@@ -560,12 +560,17 @@ export default function SolvePuzzle() {
                         position={renderFen}
                         onPieceDrop={onDrop}
                         onSquareClick={onSquareClick as any}
+                        arePiecesDraggable={!solved}
                         isDraggablePiece={({ piece }: any) => {
-                          if (!game) return false;
-                          const turn = new Chess(game.fen()).turn();
-                          return piece?.startsWith(turn);
+                          if (!game || solved) {
+                            console.log('[SolvePuzzle] isDraggablePiece: blocked', { hasGame: !!game, solved });
+                            return false;
+                          }
+                          const turn = game.turn();
+                          const draggable = piece?.startsWith(turn);
+                          console.log('[SolvePuzzle] isDraggablePiece:', { piece, turn, draggable });
+                          return draggable;
                         }}
-                        arePiecesDraggable={true}
                         customBoardStyle={boardStyle}
                         customDarkSquareStyle={{ backgroundColor: customDark }}
                         customLightSquareStyle={{ backgroundColor: customLight }}

@@ -276,22 +276,24 @@ export default function ChessPuzzleSolver({ puzzleId, fen, solution, onSolve }: 
         {/* Chess Board */}
         <Chessboard
           key={`board-${puzzleId}-${renderFen}`}
-          {...({
-            position: renderFen,
-            onPieceDrop: onDrop,
-            isDraggablePiece: ({ piece }: any) => {
-              const turn = new Chess(game.fen()).turn();
-              return piece?.startsWith(turn);
-            },
-            customBoardStyle: boardStyle,
-            customDarkSquareStyle: { backgroundColor: customDark },
-            customLightSquareStyle: { backgroundColor: customLight },
-            customSquareStyles: squareStyles,
-            boardWidth: boardSize,
-            animationDuration: 200,
-            areArrowsAllowed: false,
-            customPieces: customPieces,
-          } as any)}
+          position={renderFen}
+          onPieceDrop={onDrop}
+          arePiecesDraggable={!solved}
+          isDraggablePiece={({ piece }: any) => {
+            if (solved) return false;
+            const turn = game.turn();
+            const draggable = piece?.startsWith(turn);
+            console.log('[ChessPuzzleSolver] isDraggablePiece:', { piece, turn, draggable, solved });
+            return draggable;
+          }}
+          customBoardStyle={boardStyle}
+          customDarkSquareStyle={{ backgroundColor: customDark }}
+          customLightSquareStyle={{ backgroundColor: customLight }}
+          customSquareStyles={squareStyles}
+          boardWidth={boardSize}
+          animationDuration={200}
+          areArrowsAllowed={false}
+          customPieces={customPieces}
         />
 
         {/* Action Buttons */}
