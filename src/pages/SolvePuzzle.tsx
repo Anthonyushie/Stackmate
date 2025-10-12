@@ -478,8 +478,7 @@ export default function SolvePuzzle() {
                       LOADING BOARD...
                     </div>
                   ) : (
-                    <div key={`chessground-${numericId}-${renderFen.substring(0, 20)}`} style={{ border: `6px solid ${colors.border}` }}>
-                      {console.log('[SolvePuzzle] Rendering ChessgroundBoard with position:', renderFen)}
+                    <div key={`chessground-${numericId}`} style={{ border: `6px solid ${colors.border}` }}>
                       <ChessgroundBoard
                         fen={renderFen}
                         onMove={onMove}
