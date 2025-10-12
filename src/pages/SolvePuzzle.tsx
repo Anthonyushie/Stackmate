@@ -414,8 +414,8 @@ export default function SolvePuzzle() {
             {/* Board Section */}
             <div ref={boardWrapRef}>
               <motion.div
-                initial={{ rotate: -1, y: 20, opacity: 0 }}
-                animate={{ rotate: -1, y: 0, opacity: 1 }}
+                initial={{ rotate: 0, y: 20, opacity: 0 }}
+                animate={{ rotate: 0, y: 0, opacity: 1 }}
                 transition={{ type: 'spring', stiffness: 300 }}
                 style={{
                   padding: '20px',

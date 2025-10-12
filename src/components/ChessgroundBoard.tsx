@@ -48,6 +48,7 @@ export default function ChessgroundBoard({
         free: false,
         color: turnColor || 'white',
         dests: new Map(),
+        showDests: true,
       },
       events: {
         move: (orig, dest) => {
@@ -85,6 +86,7 @@ export default function ChessgroundBoard({
         free: movable?.free ?? false,
         color: turnColor || movable?.color || 'white',
         dests: movable?.dests || new Map(),
+        showDests: true,
       },
     };
 
@@ -105,6 +107,7 @@ export default function ChessgroundBoard({
       style={{
         width: '100%',
         aspectRatio: '1',
+        touchAction: 'none',
       }}
     />
   );
