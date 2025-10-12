@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Chess, Move, type Square } from 'chess.js';
-import { Chessboard } from 'react-chessboard';
+import { Chessground } from 'chessground';
+// import { Chessboard } from 'react-chessboard';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Lightbulb, RotateCcw, PartyPopper } from 'lucide-react';
 import type { JSX } from 'react/jsx-runtime';
 import { colors, shadows } from '../styles/neo-brutal-theme';
 import NeoButton from './neo/NeoButton';
 import NeoBadge from './neo/NeoBadge';
+import ChessgroundBoard from './ChessgroundBoard';
 
 type SolveStats = {
   puzzleId: string;
@@ -274,28 +276,20 @@ export default function ChessPuzzleSolver({ puzzleId, fen, solution, onSolve }: 
         </div>
 
         {/* Chess Board */}
-        <Chessboard
+        <ChessgroundBoard
           key={`board-${puzzleId}-${renderFen}`}
-          position={renderFen}
-          onPieceDrop={onDrop}
-          arePiecesDraggable={false}
-          isDraggablePiece={({ piece }: any) => {
-            if (solved) return false;
-            const turn = game.turn();
-            const draggable = piece?.startsWith(turn);
-            console.log('[ChessPuzzleSolver] isDraggablePiece:', { piece, turn, draggable, solved });
-            return draggable;
+          fen={renderFen}
+          onMove={(from, to) => onDrop(from as Square, to as Square)}
+          orientation={game.turn() === 'w' ? 'white' : 'black'}
+          lastMove={lastMove ? [lastMove.from, lastMove.to] : undefined}
+          movable={{
+          free: false,
+          color: game.turn() === 'w' ? 'white' : 'black',
           }}
-          customBoardStyle={boardStyle}
-          customDarkSquareStyle={{ backgroundColor: customDark }}
-          customLightSquareStyle={{ backgroundColor: customLight }}
-          customSquareStyles={squareStyles}
-          boardWidth={boardSize}
-          animationDuration={200}
-          areArrowsAllowed={false}
-          customPieces={customPieces}
-        />
-
+          check={game.inCheck() ? (game.turn() === 'w' ? 'white' : 'black') : undefined}
+          highlight={{ lastMove: true, check: true }}
+          turnColor={game.turn() === 'w' ? 'white' : 'black'}
+          />
         {/* Action Buttons */}
         <div style={{ display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap' }}>
           <NeoButton variant="accent" size="md" onClick={useHint} disabled={solved}>
