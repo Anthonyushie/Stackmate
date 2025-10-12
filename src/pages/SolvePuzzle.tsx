@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Chess, type Move, type Square } from 'chess.js';
+import { getHint } from '../lib/chess-logic';
 import ChessgroundBoard from '../components/ChessgroundBoard';
 import type { Key } from 'chessground/types';
 import { Trophy, Users, Lightbulb, RotateCcw, FlagTriangleRight, X, PartyPopper, Flame } from 'lucide-react';
@@ -341,13 +342,26 @@ export default function SolvePuzzle() {
     moves.forEach((m) => {
       const from = m.from as Key;
       const to = m.to as Key;
-      if (!dests.has(from)) {
-        dests.set(from, []);
-      }
+      if (!dests.has(from)) dests.set(from, []);
       dests.get(from)!.push(to);
     });
+
+    // Ensure the expected next move is always allowed (robust fallback)
+    try {
+      if (localPuzzle && index < localPuzzle.solution.length) {
+        const hint = getHint(game.fen(), localPuzzle.solution, index);
+        if (hint) {
+          const from = hint.from as Key;
+          const to = hint.to as Key;
+          if (!dests.has(from)) dests.set(from, []);
+          const arr = dests.get(from)!;
+          if (!arr.includes(to)) arr.push(to);
+        }
+      }
+    } catch {}
+
     return dests;
-  }, [game, solved, boardFen]);
+  }, [game, solved, boardFen, localPuzzle, index]);
 
   const turnColor = useMemo(() => {
     if (!game) return 'white' as const;
