@@ -252,48 +252,59 @@ export default function SolvePuzzle() {
   }, [index, localPuzzle?.solution?.length]);
 
   const onMove = useCallback((from: string, to: string) => {
-    console.log('[SolvePuzzle] onMove called:', { from, to, solved, hasGame: !!game, index, expected: localPuzzle?.solution?.[index] });
     if (solved || !game || !localPuzzle) return;
-    
+
     const g = new Chess(game.fen());
     const legal = g.moves({ verbose: true }) as Move[];
     const candidates = legal.filter((m) => m.from === from && m.to === to);
-    
-    console.log('[SolvePuzzle] legal moves count:', legal.length, 'candidates:', candidates);
-    
+
     if (candidates.length === 0) {
-      console.warn('[SolvePuzzle] No legal move');
       setWrongShakeKey((k) => k + 1);
       return;
     }
-    
+
     const mv = candidates.find((m) => (m.promotion ? m.promotion === 'q' : true)) || candidates[0];
     const expected = localPuzzle.solution[index];
     const made = g.move({ from: mv.from, to: mv.to, promotion: mv.promotion || 'q' });
-    
+
     if (!made) {
-      console.warn('[SolvePuzzle] g.move failed for candidate:', mv);
       setWrongShakeKey((k) => k + 1);
       return;
     }
-    
+
     const san = made.san;
     const normalize = (s: string) => s.replace(/[+#]+$/g, '');
     const ok = normalize(san) === normalize(expected);
-    
-    console.log('[SolvePuzzle] Move made:', { san, expected, ok, normalizedSan: normalize(san), normalizedExpected: normalize(expected) });
-    
+
     if (!ok) {
       setWrongShakeKey((k) => k + 1);
       return;
     }
-    
+
+    const addedSans: string[] = [san];
+    let newLastFrom = from as Square;
+    let newLastTo = to as Square;
+    let nextIndex = index + 1;
+
+    if (nextIndex < localPuzzle.solution.length && nextIndex % 2 === 1) {
+      const oppSan = localPuzzle.solution[nextIndex];
+      try {
+        const opp = g.move(oppSan);
+        if (opp) {
+          addedSans.push(opp.san);
+          newLastFrom = opp.from as Square;
+          newLastTo = opp.to as Square;
+          nextIndex += 1;
+        }
+      } catch {}
+    }
+
     setGame(g);
     setBoardFen(g.fen());
-    setHistory((h) => [...h, san]);
-    setLastMove({ from: from as Square, to: to as Square });
+    setHistory((h) => [...h, ...addedSans]);
+    setLastMove({ from: newLastFrom, to: newLastTo });
     setHintMove(null);
-    setIndex((i) => i + 1);
+    setIndex(nextIndex);
   }, [game, index, localPuzzle, solved]);
 
   const useHint = useCallback(() => {
