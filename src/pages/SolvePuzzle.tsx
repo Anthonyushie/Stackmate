@@ -51,18 +51,36 @@ export default function SolvePuzzle() {
   const submittedRef = useRef(false);
 
   const [elapsed, setElapsed] = useState(0);
-  const demoMode = useMemo(() => {
+  const [demoMode, setDemoMode] = useState<boolean>(() => {
     try {
       const params = new URLSearchParams(location.search);
       const v = (params.get('demo') || '').toLowerCase();
-      if (['1', 'true', 'win', 'yes'].includes(v)) return true;
+      if (['1', 'true', 'win', 'yes', 'on'].includes(v)) return true;
       if (typeof window !== 'undefined') {
         const ls = (window.localStorage.getItem('STACKMATE_DEMO_WIN_FIRST') || '').toLowerCase();
-        if (['1', 'true', 'win', 'yes'].includes(ls)) return true;
+        if (['1', 'true', 'win', 'yes', 'on'].includes(ls)) return true;
       }
     } catch {}
     return false;
+  });
+
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(location.search);
+      const v = (params.get('demo') || '').toLowerCase();
+      if (['1', 'true', 'win', 'yes', 'on'].includes(v)) setDemoMode(true);
+      else if (['0', 'false', 'off', 'no'].includes(v)) setDemoMode(false);
+    } catch {}
   }, [location.search]);
+
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        if (demoMode) window.localStorage.setItem('STACKMATE_DEMO_WIN_FIRST', '1');
+        else window.localStorage.removeItem('STACKMATE_DEMO_WIN_FIRST');
+      }
+    } catch {}
+  }, [demoMode]);
   const [penalties, setPenalties] = useState(0);
 
   const [game, setGame] = useState<Chess | null>(() => {
@@ -493,6 +511,13 @@ export default function SolvePuzzle() {
                   {showDemoBadge && (
                     <NeoBadge color={colors.accent} size="lg">DEMO MODE</NeoBadge>
                   )}
+                  <NeoButton
+                    variant={demoMode ? 'accent' : 'secondary'}
+                    size="sm"
+                    onClick={() => setDemoMode((v) => !v)}
+                  >
+                    {demoMode ? 'DEMO ON' : 'DEMO OFF'}
+                  </NeoButton>
                   <div
                     style={{
                       padding: '12px 20px',
