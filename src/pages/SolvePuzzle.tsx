@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Chess, type Move, type Square } from 'chess.js';
 import { getHint } from '../lib/chess-logic';
@@ -34,6 +34,7 @@ function formatTime(totalSeconds: number) {
 export default function SolvePuzzle() {
   const { difficulty = 'beginner', puzzleId = '' } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { network, getAddress } = useWallet();
   const address = getAddress() || '';
 
@@ -50,6 +51,18 @@ export default function SolvePuzzle() {
   const submittedRef = useRef(false);
 
   const [elapsed, setElapsed] = useState(0);
+  const demoMode = useMemo(() => {
+    try {
+      const params = new URLSearchParams(location.search);
+      const v = (params.get('demo') || '').toLowerCase();
+      if (['1', 'true', 'win', 'yes'].includes(v)) return true;
+      if (typeof window !== 'undefined') {
+        const ls = (window.localStorage.getItem('STACKMATE_DEMO_WIN_FIRST') || '').toLowerCase();
+        if (['1', 'true', 'win', 'yes'].includes(ls)) return true;
+      }
+    } catch {}
+    return false;
+  }, [location.search]);
   const [penalties, setPenalties] = useState(0);
 
   const [game, setGame] = useState<Chess | null>(() => {
@@ -291,6 +304,19 @@ export default function SolvePuzzle() {
       return;
     }
 
+    // DEMO: show win modal immediately after the first correct move
+    if (demoMode) {
+      setGame(g);
+      setBoardFen(g.fen());
+      setHistory((h) => [...h, san]);
+      setLastMove({ from: from as Square, to: to as Square });
+      setHintMove(null);
+      setIndex(index + 1);
+      setSolved(true);
+      submittedRef.current = true; // prevent blockchain submission in demo
+      return;
+    }
+
     const addedSans: string[] = [san];
     let newLastFrom = from as Square;
     let newLastTo = to as Square;
@@ -315,7 +341,7 @@ export default function SolvePuzzle() {
     setLastMove({ from: newLastFrom, to: newLastTo });
     setHintMove(null);
     setIndex(nextIndex);
-  }, [game, index, localPuzzle, solved, failed, wrongAttempts]);
+  }, [game, index, localPuzzle, solved, failed, wrongAttempts, demoMode]);
 
   const useHint = useCallback(() => {
     if (solved || !nextExpectedSan || !game) return;
@@ -371,7 +397,7 @@ export default function SolvePuzzle() {
   const totalTime = useMemo(() => elapsed + penalties, [elapsed, penalties]);
 
   useEffect(() => {
-    if (!solved || !entered || !localPuzzle) return;
+    if (!solved || !entered || !localPuzzle || demoMode) return;
     if (submittedRef.current) return;
     submittedRef.current = true;
     (async () => {
@@ -392,7 +418,7 @@ export default function SolvePuzzle() {
         setSubmitting(false);
       }
     })();
-  }, [solved]);
+  }, [solved, demoMode]);
 
   const yourRank = useMemo(() => {
     if (!leaders || !leaders.length) return 1;
@@ -427,6 +453,7 @@ export default function SolvePuzzle() {
   }
 
   const difficultyColor = getDifficultyColor(difficulty as any);
+  const showDemoBadge = demoMode;
 
   return (
     <div style={{ minHeight: '100vh', background: colors.light, position: 'relative', overflow: 'hidden' }}>
@@ -463,6 +490,9 @@ export default function SolvePuzzle() {
                   <NeoBadge color={colors.dark} size="lg">
                     #{numericId} • {(info?.difficulty || '').toUpperCase()}
                   </NeoBadge>
+                  {showDemoBadge && (
+                    <NeoBadge color={colors.accent} size="lg">DEMO MODE</NeoBadge>
+                  )}
                   <div
                     style={{
                       padding: '12px 20px',
