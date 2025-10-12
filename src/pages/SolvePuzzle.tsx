@@ -252,10 +252,11 @@ export default function SolvePuzzle() {
 
   useEffect(() => {
     if (loading) return;
+    if (demoMode) return; // Allow demo mode without entry
     if (!entered) {
       navigate('/', { replace: true });
     }
-  }, [loading, entered]);
+  }, [loading, entered, demoMode]);
 
   const nextExpectedSan = useMemo(() => localPuzzle?.solution[index] ?? null, [localPuzzle?.solution, index]);
 
@@ -288,6 +289,7 @@ export default function SolvePuzzle() {
   }, [index, localPuzzle?.solution?.length]);
 
   const onMove = useCallback((from: string, to: string) => {
+    console.log('[SolvePuzzle] onMove called with demoMode:', demoMode, 'from:', from, 'to:', to);
     if (solved || failed || !game || !localPuzzle) return;
 
     const g = new Chess(game.fen());
@@ -310,6 +312,7 @@ export default function SolvePuzzle() {
 
     // DEMO: show win modal immediately after the first user move (any legal move)
     if (demoMode) {
+      console.log('[SolvePuzzle] DEMO MODE: Setting solved=true after first move');
       const san = made.san;
       setGame(g);
       setBoardFen(g.fen());
@@ -319,6 +322,7 @@ export default function SolvePuzzle() {
       setIndex(index + 1);
       setSolved(true);
       submittedRef.current = true; // prevent blockchain submission in demo
+      console.log('[SolvePuzzle] DEMO MODE: solved state set, should show modal');
       return;
     }
 
