@@ -75,40 +75,29 @@ export default function ChessgroundBoard({
     };
   }, []);
 
-  // Update position when FEN changes
+  // Update all config together to keep everything in sync
   useEffect(() => {
-    if (apiRef.current) {
-      apiRef.current.set({ fen });
-    }
-  }, [fen]);
+    if (!apiRef.current) return;
 
-  // Update movable dests
-  useEffect(() => {
-    if (apiRef.current && movable) {
-      apiRef.current.set({
-        movable: {
-          color: turnColor || movable.color || 'white',
-          ...movable,
-        },
-      });
-    }
-  }, [movable, turnColor]);
+    const config: Partial<Config> = {
+      fen,
+      movable: {
+        free: movable?.free ?? false,
+        color: turnColor || movable?.color || 'white',
+        dests: movable?.dests || new Map(),
+      },
+    };
 
-  // Update last move highlight
-  useEffect(() => {
-    if (apiRef.current && lastMove) {
-      apiRef.current.set({ lastMove });
+    if (lastMove) {
+      config.lastMove = lastMove;
     }
-  }, [lastMove]);
 
-  // Update check
-  useEffect(() => {
-    if (apiRef.current && check && typeof check === 'string') {
-      apiRef.current.set({
-        check,
-      });
+    if (check && typeof check === 'string') {
+      config.check = check;
     }
-  }, [check]);
+
+    apiRef.current.set(config);
+  }, [fen, movable, turnColor, lastMove, check]);
 
   return (
     <div
