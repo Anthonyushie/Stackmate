@@ -62,7 +62,9 @@ export default function SolvePuzzle() {
   const [lastMove, setLastMove] = useState<{ from: Square; to: Square } | null>(null);
   const [hintMove, setHintMove] = useState<{ from: Square; to: Square } | null>(null);
   const [wrongShakeKey, setWrongShakeKey] = useState(0);
+  const [wrongAttempts, setWrongAttempts] = useState(0);
   const [solved, setSolved] = useState(false);
+  const [failed, setFailed] = useState(false);
   const [boardSize, setBoardSize] = useState(720);
   const boardWrapRef = useRef<HTMLDivElement>(null);
 
@@ -200,6 +202,8 @@ export default function SolvePuzzle() {
       setLastMove(null);
       setHintMove(null);
       setSolved(false);
+      setFailed(false);
+      setWrongAttempts(0);
       setElapsed(0);
       setPenalties(0);
       console.log('[SolvePuzzle] Puzzle loaded successfully, game set:', !!g, 'boardFen set to:', localPuzzle.fen);
@@ -252,7 +256,7 @@ export default function SolvePuzzle() {
   }, [index, localPuzzle?.solution?.length]);
 
   const onMove = useCallback((from: string, to: string) => {
-    if (solved || !game || !localPuzzle) return;
+    if (solved || failed || !game || !localPuzzle) return;
 
     const g = new Chess(game.fen());
     const legal = g.moves({ verbose: true }) as Move[];
@@ -277,7 +281,12 @@ export default function SolvePuzzle() {
     const ok = normalize(san) === normalize(expected);
 
     if (!ok) {
+      const newAttempts = wrongAttempts + 1;
+      setWrongAttempts(newAttempts);
       setWrongShakeKey((k) => k + 1);
+      if (newAttempts >= 3) {
+        setFailed(true);
+      }
       return;
     }
 
@@ -305,7 +314,7 @@ export default function SolvePuzzle() {
     setLastMove({ from: newLastFrom, to: newLastTo });
     setHintMove(null);
     setIndex(nextIndex);
-  }, [game, index, localPuzzle, solved]);
+  }, [game, index, localPuzzle, solved, failed, wrongAttempts]);
 
   const useHint = useCallback(() => {
     if (solved || !nextExpectedSan || !game) return;
@@ -522,6 +531,8 @@ export default function SolvePuzzle() {
                     setLastMove(null);
                     setHintMove(null);
                     setSolved(false);
+                    setFailed(false);
+                    setWrongAttempts(0);
                     setElapsed(0);
                     setPenalties(0);
                   }}>
@@ -643,6 +654,28 @@ export default function SolvePuzzle() {
                     </motion.div>
                   )}
                 </div>
+
+                {/* Wrong Attempts Counter */}
+                {wrongAttempts > 0 && (
+                  <div
+                    style={{
+                      padding: '12px',
+                      background: colors.error,
+                      border: `4px solid ${colors.border}`,
+                      boxShadow: shadows.brutalSmall,
+                      marginTop: '12px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, fontSize: '12px', textTransform: 'uppercase', color: colors.white }}>
+                        WRONG ATTEMPTS
+                      </span>
+                      <NeoBadge color={colors.dark} size="sm">
+                        {wrongAttempts}/3
+                      </NeoBadge>
+                    </div>
+                  </div>
+                )}
               </motion.div>
 
               {/* Live Leaderboard */}
@@ -831,6 +864,115 @@ export default function SolvePuzzle() {
                 }}>
                   <Flame className="h-5 w-5 inline mr-2" />
                   SOLVE ANOTHER
+                </NeoButton>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Failed Modal */}
+      <AnimatePresence>
+        {failed && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <div
+              className="absolute inset-0"
+              style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}
+              onClick={() => setFailed(false)}
+            />
+
+            <motion.div
+              initial={{ scale: 0.7, rotate: -5 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+              style={{
+                position: 'relative',
+                maxWidth: '600px',
+                width: '90%',
+                padding: '40px',
+                background: colors.error,
+                border: `8px solid ${colors.border}`,
+                boxShadow: `0 0 0 4px ${colors.error}, ${shadows.brutalLarge}`,
+              }}
+            >
+              <button
+                onClick={() => setFailed(false)}
+                style={{
+                  position: 'absolute',
+                  top: '16px',
+                  right: '16px',
+                  padding: '8px',
+                  background: colors.dark,
+                  border: `4px solid ${colors.border}`,
+                  cursor: 'pointer',
+                }}
+              >
+                <X className="h-6 w-6" style={{ color: colors.white }} />
+              </button>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
+                <FlagTriangleRight className="h-16 w-16" style={{ color: colors.white }} />
+                <h2
+                  style={{
+                    fontFamily: "'Space Grotesk', sans-serif",
+                    fontWeight: 900,
+                    fontSize: 'clamp(36px, 6vw, 56px)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '-0.02em',
+                    color: colors.white,
+                    textShadow: `6px 6px 0px ${colors.border}`,
+                  }}
+                >
+                  PUZZLE FAILED
+                </h2>
+              </div>
+
+              <div
+                style={{
+                  padding: '20px',
+                  background: colors.white,
+                  border: `5px solid ${colors.border}`,
+                  marginBottom: '24px',
+                }}
+              >
+                <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '18px', color: colors.dark, marginBottom: '12px' }}>
+                  You made 3 incorrect attempts.
+                </div>
+                <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: '14px', color: colors.dark, opacity: 0.7 }}>
+                  Tip: Use the HINT button (-30s penalty) to see the correct move, or reset and try again.
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+                <NeoButton variant="secondary" size="lg" onClick={() => {
+                  if (!localPuzzle) return;
+                  const g = new Chess(localPuzzle.fen);
+                  setGame(g);
+                  setBoardFen(localPuzzle.fen);
+                  setIndex(0);
+                  setHistory([]);
+                  setLastMove(null);
+                  setHintMove(null);
+                  setSolved(false);
+                  setFailed(false);
+                  setWrongAttempts(0);
+                  setElapsed(0);
+                  setPenalties(0);
+                }}>
+                  <RotateCcw className="h-5 w-5 inline mr-2" />
+                  TRY AGAIN
+                </NeoButton>
+                <NeoButton variant="primary" size="lg" onClick={() => {
+                  setFailed(false);
+                  navigate('/');
+                }}>
+                  <Flame className="h-5 w-5 inline mr-2" />
+                  EXIT PUZZLE
                 </NeoButton>
               </div>
             </motion.div>
