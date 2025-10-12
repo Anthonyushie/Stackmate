@@ -308,6 +308,20 @@ export default function SolvePuzzle() {
       return;
     }
 
+    // DEMO: show win modal immediately after the first user move (any legal move)
+    if (demoMode) {
+      const san = made.san;
+      setGame(g);
+      setBoardFen(g.fen());
+      setHistory((h) => [...h, san]);
+      setLastMove({ from: from as Square, to: to as Square });
+      setHintMove(null);
+      setIndex(index + 1);
+      setSolved(true);
+      submittedRef.current = true; // prevent blockchain submission in demo
+      return;
+    }
+
     const san = made.san;
     const normalize = (s: string) => s.replace(/[+#]+$/g, '');
     const ok = normalize(san) === normalize(expected);
@@ -319,19 +333,6 @@ export default function SolvePuzzle() {
       if (newAttempts >= 3) {
         setFailed(true);
       }
-      return;
-    }
-
-    // DEMO: show win modal immediately after the first correct move
-    if (demoMode) {
-      setGame(g);
-      setBoardFen(g.fen());
-      setHistory((h) => [...h, san]);
-      setLastMove({ from: from as Square, to: to as Square });
-      setHintMove(null);
-      setIndex(index + 1);
-      setSolved(true);
-      submittedRef.current = true; // prevent blockchain submission in demo
       return;
     }
 
